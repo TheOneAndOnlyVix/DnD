@@ -1,0 +1,3237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quevela</title>
+<style>
+/* -------------------------------------------------------------------
+   Quevela VTT — visual system
+   A torchlit dungeon ledger: near-black stone, dried-blood red, and
+   worn gold leaf. Dark chrome for the app frame, an aged parchment
+   page for the story feed, elemental colors reserved for the things
+   that are actually elemental (spell tags, stat bars).
+   ------------------------------------------------------------------- */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --ink: #08070a;
+  --ink-panel: #100d10;
+  --ink-panel-raised: #191419;
+  --ink-line: #3a2a24;
+  --text-hi: #ecdfc2;
+  --text-lo: #9c8a76;
+  --parchment: #e8dcbd;
+  --parchment-dark: #d3c194;
+  --ink-on-parchment: #241b12;
+
+  --gold: #c9a24b;
+  --gold-bright: #e8c873;
+  --gold-dim: #6b551f;
+  --blood: #8a1f1f;
+  --blood-bright: #c8302c;
+  --blood-dim: #4a1414;
+
+  --mana: #8b7bff;
+  --mana-dim: #4b3f99;
+  --fire: #d1481f;
+  --water: #2c86c9;
+  --wind: #4fae7c;
+  --earth: #a97a3f;
+
+  --danger: #c8302c;
+  --success: #3f9e5c;
+  --radius-page: 2px;
+  --radius-ui: 4px;
+  --font-display: "Cinzel", "Fraunces", Georgia, serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background:
+    radial-gradient(ellipse 900px 600px at 15% -10%, rgba(138,31,31,0.10), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 110%, rgba(201,162,75,0.06), transparent 55%),
+    var(--ink);
+  color: var(--text-hi);
+  font-family: var(--font-body);
+}
+
+body { display: flex; flex-direction: column; min-height: 100vh; }
+
+a { color: inherit; }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+::selection { background: var(--blood-dim); color: var(--text-hi); }
+
+input, select, textarea {
+  font-family: var(--font-body);
+  background: var(--ink-panel-raised);
+  border: 1px solid var(--ink-line);
+  color: var(--text-hi);
+  border-radius: var(--radius-ui);
+  padding: 9px 11px;
+  font-size: 14px;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201, 162, 75, 0.16);
+}
+
+label {
+  font-size: 12.5px;
+  color: var(--text-lo);
+  display: block;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.btn {
+  border: 1px solid var(--ink-line);
+  background: var(--ink-panel-raised);
+  color: var(--text-hi);
+  padding: 10px 18px;
+  border-radius: var(--radius-ui);
+  font-size: 14px;
+  font-weight: 600;
+  transition: border-color 120ms ease, transform 80ms ease, box-shadow 120ms ease;
+}
+.btn:hover { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(201,162,75,0.15); }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  border-color: var(--gold);
+  color: #241b0a;
+}
+.btn-primary:hover { background: linear-gradient(180deg, #f0d68a, var(--gold-bright)); box-shadow: 0 0 12px rgba(201,162,75,0.35); }
+
+.btn-danger { border-color: var(--blood-bright); color: var(--blood-bright); background: transparent; }
+.btn-danger:hover { background: rgba(200, 48, 44, 0.14); }
+
+.btn-ghost { background: transparent; border-color: transparent; color: var(--text-lo); }
+.btn-ghost:hover { color: var(--text-hi); border-color: var(--ink-line); }
+
+.btn-block { width: 100%; }
+
+.btn-roster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-color: var(--blood-dim);
+  background: linear-gradient(180deg, #1c1113, #120b0c);
+  color: var(--gold-bright);
+  font-size: 13px;
+  padding: 8px 14px;
+}
+.btn-roster:hover { border-color: var(--blood-bright); box-shadow: 0 0 10px rgba(138,31,31,0.35); }
+.roster-torch { font-size: 13px; }
+
+.btn-tutorial {
+  border-color: var(--gold-dim);
+  background: linear-gradient(180deg, #1a1611, #12100c);
+  color: var(--gold-bright);
+  font-size: 13px;
+  padding: 8px 14px;
+}
+.btn-tutorial:hover { border-color: var(--gold); box-shadow: 0 0 10px rgba(201,162,75,0.3); }
+
+/* ---- DM tutorial modal ---- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5,3,4,0.75);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 640px;
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #150f11, #0e0a0b);
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius-ui);
+  box-shadow: 0 24px 70px rgba(0,0,0,0.6);
+  overflow: hidden;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--ink-line);
+  flex-shrink: 0;
+}
+.modal-head h3 { margin: 0; color: var(--gold-bright); font-size: 18px; }
+
+.modal-body { padding: 18px 20px; overflow-y: auto; }
+
+.tutorial-section { margin-bottom: 22px; }
+.tutorial-section:last-child { margin-bottom: 0; }
+.tutorial-section h4 {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--gold-bright);
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+.tutorial-section p {
+  font-size: 13.5px;
+  color: var(--text-hi);
+  line-height: 1.6;
+  margin: 0;
+}
+.tutorial-section p strong { color: var(--gold-bright); }
+
+.overview-name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  margin-bottom: 14px;
+}
+
+/* ===================================================================
+   Auth / Lobby (index.html)
+   =================================================================== */
+
+.lobby-shell {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  min-height: 100vh;
+}
+
+.lobby-hero {
+  background:
+    radial-gradient(circle at 20% 15%, rgba(138,31,31,0.22), transparent 45%),
+    radial-gradient(circle at 80% 85%, rgba(201,162,75,0.12), transparent 40%),
+    var(--ink);
+  padding: 64px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid var(--ink-line);
+}
+
+.lobby-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(40px, 5vw, 60px);
+  line-height: 1.05;
+  margin: 0 0 18px;
+  letter-spacing: 0.01em;
+  color: var(--gold-bright);
+  text-shadow: 0 0 22px rgba(201,162,75,0.25);
+}
+
+.lobby-hero p {
+  color: var(--text-lo);
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 46ch;
+}
+
+.region-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+.region-chip {
+  border: 1px solid var(--ink-line);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--gold);
+  background: rgba(201,162,75,0.05);
+}
+
+.lobby-hero footer { color: var(--text-lo); font-size: 12.5px; letter-spacing: 0.03em; }
+
+.lobby-forms {
+  padding: 64px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+  max-width: 460px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.tab-switch {
+  display: flex;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius-ui);
+  overflow: hidden;
+}
+.tab-switch button {
+  flex: 1;
+  padding: 11px;
+  background: transparent;
+  border: none;
+  color: var(--text-lo);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.tab-switch button.active { background: var(--ink-panel-raised); color: var(--gold-bright); }
+
+.field-group { display: flex; flex-direction: column; gap: 14px; }
+
+.form-panel { display: none; flex-direction: column; gap: 16px; }
+.form-panel.active { display: flex; }
+
+.form-msg { font-size: 13px; min-height: 18px; }
+.form-msg.error { color: var(--danger); }
+.form-msg.ok { color: var(--success); }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-lo);
+  font-size: 12px;
+}
+.divider::before, .divider::after { content: ""; height: 1px; flex: 1; background: var(--ink-line); }
+
+/* ===================================================================
+   Room shell (room.html)
+   =================================================================== */
+
+.app-shell {
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--ink-line);
+  background: linear-gradient(180deg, #130f11, var(--ink-panel));
+  box-shadow: 0 1px 0 rgba(201,162,75,0.08);
+}
+
+.topbar-room {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.topbar-room h1 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  margin: 0;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 0.02em;
+}
+.topbar-room .room-code {
+  font-size: 12.5px;
+  color: var(--text-lo);
+  letter-spacing: 0.04em;
+}
+
+.topbar-user { display: flex; align-items: center; gap: 12px; font-size: 13.5px; color: var(--text-lo); }
+.role-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--mana-dim);
+  color: #ece7ff;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.role-pill.dm-pill { background: linear-gradient(180deg, var(--blood-bright), var(--blood)); color: #fbe6e3; }
+
+.room-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr 320px;
+  min-height: 0;
+}
+.room-grid.no-left { grid-template-columns: 1fr 320px; }
+
+.sidebar {
+  background: var(--ink-panel);
+  border-right: 1px solid var(--ink-line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.sidebar.right { border-right: none; border-left: 1px solid var(--ink-line); }
+
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--ink-line);
+  flex-shrink: 0;
+  overflow-x: auto;
+  background: rgba(0,0,0,0.15);
+}
+.tab-bar button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-lo);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 12px 6px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.tab-bar button:hover { color: var(--text-hi); }
+.tab-bar button.active { color: var(--gold-bright); border-bottom-color: var(--blood-bright); }
+
+.tab-panel { display: none; flex: 1; overflow-y: auto; padding: 16px; min-height: 0; }
+.tab-panel.active { display: block; }
+
+/* ---- Table roster button + dropdown ---- */
+
+.roster-wrap { position: relative; }
+
+.roster-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 260px;
+  background: linear-gradient(180deg, #150f11, #0e0a0b);
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius-ui);
+  box-shadow: 0 12px 34px rgba(0,0,0,0.55), 0 0 0 1px rgba(201,162,75,0.05);
+  padding: 12px;
+  z-index: 50;
+}
+
+.roster-head {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.roster-controls-head { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--ink-line); }
+
+.roster-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-ui);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-hi);
+  font-size: 13px;
+  text-align: left;
+  margin-bottom: 4px;
+}
+.roster-row:not(:disabled):hover { background: rgba(201,162,75,0.08); border-color: var(--ink-line); }
+.roster-row:disabled { cursor: default; }
+.roster-row.on-turn { background: rgba(63,158,92,0.12); border-color: var(--success); }
+
+.roster-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--ink-line);
+  flex-shrink: 0;
+}
+.roster-dot.lit {
+  background: var(--success);
+  box-shadow: 0 0 8px 2px rgba(63,158,92,0.65);
+}
+
+.roster-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-lo);
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.roster-toggle-row input { width: auto; padding: 0; }
+
+.lock-note { border-color: var(--blood-dim); color: var(--text-lo); }
+
+/* ---- Story / chat center column ---- */
+
+.story-column { display: flex; flex-direction: column; min-height: 0; background: var(--ink); }
+
+.story-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 26px 8%;
+  background: var(--parchment);
+  color: var(--ink-on-parchment);
+  background-image:
+    radial-gradient(ellipse 500px 300px at 90% 0%, rgba(138,31,31,0.05), transparent 60%),
+    repeating-linear-gradient(rgba(0,0,0,0.03) 0 1px, transparent 1px 34px);
+}
+
+.story-line { margin-bottom: 16px; max-width: 72ch; }
+.story-line .who {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14.5px;
+  margin-right: 8px;
+}
+.story-line .who.dm-name { color: var(--blood); }
+.story-line .body { font-size: 15px; line-height: 1.55; }
+.story-line.system { text-align: center; max-width: none; }
+.story-line.system .body { color: #6b5f42; font-size: 12.5px; font-style: italic; }
+.story-line.roll .body {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(138,31,31,0.08);
+  padding: 4px 10px;
+  border-radius: var(--radius-page);
+  font-weight: 600;
+}
+.story-line.whisper .body { color: #55495f; font-style: italic; }
+
+.composer {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--ink-line);
+  background: var(--ink-panel);
+}
+.composer input { flex: 1; }
+.composer input:disabled {
+  background: var(--ink-panel);
+  color: var(--text-lo);
+  border-color: var(--blood-dim);
+}
+
+/* ---- Stats tab ---- */
+
+.stat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.stat-row .stat-name { width: 82px; font-size: 13px; color: var(--text-lo); }
+.stat-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--ink-panel-raised);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.stat-bar-fill { height: 100%; border-radius: 4px; }
+.stat-row .stat-val { width: 26px; text-align: right; font-size: 13px; font-weight: 600; }
+
+.points-remaining {
+  font-size: 13px;
+  color: var(--text-lo);
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px dashed var(--gold-dim);
+  border-radius: var(--radius-ui);
+}
+.points-remaining strong { color: var(--gold-bright); }
+
+.stat-editor-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.stat-editor-row .stat-name { width: 82px; font-size: 13px; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper button {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--ink-line);
+  background: var(--ink-panel-raised);
+  color: var(--text-hi);
+  font-weight: 700;
+  line-height: 1;
+}
+.stepper .val { width: 22px; text-align: center; font-weight: 700; }
+
+/* ---- Condition tab ---- */
+
+.hp-block { margin-bottom: 20px; }
+.hp-numbers { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--text-lo); }
+.hp-track { height: 14px; border-radius: 7px; background: var(--ink-panel-raised); overflow: hidden; border: 1px solid var(--ink-line); }
+.hp-fill { height: 100%; background: linear-gradient(90deg, var(--blood), var(--blood-bright)); border-radius: 7px; transition: width 200ms ease; }
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ink-panel-raised);
+  border: 1px solid var(--ink-line);
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  margin: 0 6px 6px 0;
+  color: var(--gold-bright);
+}
+.status-chip button { background: none; border: none; color: var(--text-lo); font-size: 13px; padding: 0; }
+
+.inventory-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ink-line);
+  font-size: 13.5px;
+}
+.inventory-item .qty { color: var(--text-lo); }
+
+.skill-card {
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius-ui);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: var(--ink-panel-raised);
+}
+.skill-card .skill-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.skill-card .skill-head strong { font-size: 13.5px; color: var(--gold-bright); }
+.skill-tag {
+  font-size: 10.5px;
+  text-transform: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  color: #0e0c1c;
+}
+.skill-card p { margin: 6px 0 0; font-size: 12.5px; color: var(--text-lo); line-height: 1.5; }
+
+/* ---- DM notes (read-only, player side) ---- */
+
+.note-card {
+  border-left: 3px solid var(--blood-bright);
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--ink-panel-raised);
+  border-radius: 0 var(--radius-ui) var(--radius-ui) 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.note-card time { display: block; font-size: 11px; color: var(--text-lo); margin-top: 6px; }
+
+/* ---- Dice tab ---- */
+
+.dice-request-card {
+  border: 1px solid var(--gold);
+  background: rgba(201,162,75,0.06);
+  border-radius: var(--radius-ui);
+  padding: 14px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+.dice-request-card p { margin: 0 0 10px; font-size: 13.5px; }
+.die-face {
+  width: 84px; height: 84px;
+  margin: 0 auto 12px;
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 34px; font-weight: 700;
+  background: var(--ink-panel-raised);
+  color: var(--gold-bright);
+  box-shadow: 0 0 16px rgba(201,162,75,0.15) inset;
+}
+.die-face.rolling { animation: dieShake 90ms infinite; }
+@keyframes dieShake { 0% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } 100% { transform: rotate(-4deg); } }
+
+.free-roll-row { display: flex; gap: 8px; margin-top: 18px; }
+.free-roll-row select { flex: 1; }
+
+/* ---- DM tools ---- */
+
+.dm-section { margin-bottom: 22px; }
+.dm-section h3 {
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  margin: 0 0 10px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 0.02em;
+}
+.dm-target-picker { margin-bottom: 12px; }
+
+.dm-field-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.dm-field-row > * { flex: 1; }
+
+textarea.notes-box { width: 100%; min-height: 90px; resize: vertical; }
+
+.mini-note {
+  font-size: 12px;
+  color: var(--text-lo);
+  padding: 8px 10px;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius-ui);
+  margin-top: 8px;
+  background: var(--ink-panel-raised);
+}
+
+.empty-state { color: var(--text-lo); font-size: 13px; text-align: center; padding: 30px 10px; }
+
+/* ---- Character creation screen ---- */
+
+.creation-shell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+.creation-card {
+  width: 100%;
+  max-width: 620px;
+  background: linear-gradient(180deg, #130f11, var(--ink-panel));
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius-ui);
+  padding: 36px 40px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.creation-card h2 { font-family: var(--font-display); margin-top: 0; font-weight: 700; color: var(--gold-bright); }
+.creation-card > p { color: var(--text-lo); font-size: 14px; margin-top: -8px; }
+
+/* ---- misc ---- */
+
+/* ---- Baseline element defaults (things not covered by a component class) ---- */
+
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); font-weight: 700; margin: 0 0 12px; }
+p { margin: 0 0 12px; line-height: 1.5; }
+ul, ol { margin: 0 0 12px; padding-left: 20px; line-height: 1.6; }
+hr { border: none; border-top: 1px solid var(--ink-line); margin: 20px 0; }
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--ink-panel-raised);
+  border: 1px solid var(--ink-line);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.9em;
+  color: var(--gold-bright);
+}
+
+option { background: var(--ink-panel-raised); color: var(--text-hi); }
+
+input::placeholder, textarea::placeholder { color: var(--text-lo); opacity: 0.8; }
+
+button:disabled, input:disabled, select:disabled, textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dark scrollbars wherever content overflows (story feed, tab panels, sidebars) */
+* { scrollbar-color: var(--ink-line) transparent; scrollbar-width: thin; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--ink-line); border-radius: 5px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--text-lo); }
+
+.hidden { display: none !important; }
+
+@media (max-width: 980px) {
+  .lobby-shell { grid-template-columns: 1fr; }
+  .lobby-hero { padding: 44px 28px; }
+  .lobby-forms { padding: 44px 28px; }
+  .room-grid, .room-grid.no-left { grid-template-columns: 1fr; grid-auto-rows: min-content; }
+  .sidebar { border: none; border-bottom: 1px solid var(--ink-line); }
+}
+
+#lobbyView { flex: 1; display: flex; flex-direction: column; }
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     LOBBY VIEW — sign in / register, then join or create a room
+     ============================================================ -->
+<div id="lobbyView">
+<div class="lobby-shell">
+  <section class="lobby-hero">
+    <div>
+      <h1>Quevela</h1>
+      <p>Five splintered regions, four schools of elemental magic, and a table waiting for its next story. Sign in to join a session, or open one of your own as the Dice Master.</p>
+      <div class="region-chips">
+        <span class="region-chip">Elven Heaps</span>
+        <span class="region-chip">BadLands</span>
+        <span class="region-chip">Supalania</span>
+        <span class="region-chip">Demihuman Turf</span>
+        <span class="region-chip">Elovian Farlands</span>
+      </div>
+    </div>
+    <footer>Fire · Water · Wind · Earth — plus the Intellectual arts.</footer>
+  </section>
+
+  <section class="lobby-forms">
+    <div id="authArea">
+      <div class="tab-switch">
+        <button id="tabLogin" class="active" type="button">Sign in</button>
+        <button id="tabRegister" type="button">Create account</button>
+      </div>
+
+      <form id="loginForm" class="form-panel active">
+        <div class="field-group">
+          <div>
+            <label for="loginUsername">Username</label>
+            <input id="loginUsername" required autocomplete="username" />
+          </div>
+          <div>
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" type="password" required autocomplete="current-password" />
+          </div>
+        </div>
+        <p class="form-msg" id="loginMsg"></p>
+        <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+      </form>
+
+      <form id="registerForm" class="form-panel">
+        <div class="field-group">
+          <div>
+            <label for="regUsername">Choose a username</label>
+            <input id="regUsername" required autocomplete="username" />
+          </div>
+          <div>
+            <label for="regPassword">Choose a password</label>
+            <input id="regPassword" type="password" required autocomplete="new-password" />
+          </div>
+        </div>
+        <p class="form-msg" id="registerMsg"></p>
+        <button class="btn btn-primary btn-block" type="submit">Create account</button>
+      </form>
+    </div>
+
+    <div id="lobbyArea" class="hidden">
+      <p style="color: var(--text-lo); font-size: 14px; margin-bottom: 4px;">Signed in as <strong id="whoAmI" style="color: var(--text-hi);"></strong></p>
+
+      <div class="divider">join a table</div>
+      <form id="joinForm" class="field-group" style="margin-bottom: 8px;">
+        <div>
+          <label for="joinCode">Room code</label>
+          <input id="joinCode" placeholder="e.g. 4F9K2" maxlength="8" required style="text-transform:uppercase" />
+        </div>
+        <div>
+          <label for="joinCharName">Your character's name</label>
+          <input id="joinCharName" placeholder="Left blank until you build your character" />
+        </div>
+        <p class="form-msg" id="joinMsg"></p>
+        <button class="btn btn-block" type="submit">Join room</button>
+      </form>
+
+      <div class="divider">or start one</div>
+      <form id="createForm" class="field-group">
+        <div>
+          <label for="createName">Table name</label>
+          <input id="createName" placeholder="e.g. The Ashfall Campaign" />
+        </div>
+        <div>
+          <label for="createBudget">Starting attribute points (for every player)</label>
+          <input id="createBudget" type="number" min="1" max="70" value="20" />
+        </div>
+        <p class="form-msg" id="createMsg"></p>
+        <button class="btn btn-primary btn-block" type="submit">Create room — become Dice Master</button>
+      </form>
+
+      <button class="btn btn-ghost btn-block" id="signOutBtn" style="margin-top:18px;">Sign out</button>
+    </div>
+  </section>
+</div>
+</div>
+
+
+<!-- ============================================================
+     CHARACTER CREATION — shown once per character until saved
+     ============================================================ -->
+<div id="creationView" class="creation-shell hidden">
+  <div class="creation-card">
+    <h2>Build your character</h2>
+    <p id="creationBudgetLine">Distribute your points across the seven attributes. No attribute may exceed 10.</p>
+
+    <div>
+      <label for="creationCharName">Character name</label>
+      <input id="creationCharName" style="margin-bottom:18px;" />
+    </div>
+
+    <div class="points-remaining">Points remaining: <strong id="pointsRemaining">20</strong></div>
+
+    <div id="creationStatRows"></div>
+
+    <p class="form-msg error" id="creationMsg"></p>
+    <button class="btn btn-primary btn-block" id="saveCharacterBtn" style="margin-top:10px;">Enter the table</button>
+    <button class="btn btn-ghost btn-block hidden" id="skipCharacterBtn" style="margin-top:8px;">Skip — I'll just Dice Master, no character</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN APP SHELL
+     ============================================================ -->
+<div id="appView" class="app-shell hidden">
+  <header class="app-topbar">
+    <div class="topbar-room">
+      <h1 id="roomName">—</h1>
+      <span class="room-code">code <strong id="roomCode">—</strong></span>
+    </div>
+    <div class="topbar-user">
+      <span id="charNameLabel">—</span>
+      <span class="role-pill" id="rolePill">Player</span>
+      <button class="btn btn-tutorial hidden" id="dmTutorialBtn">📖 Tutorial</button>
+      <div class="roster-wrap">
+        <button class="btn btn-roster" id="rosterBtn" title="Table roster">
+          <span class="roster-torch">&#128293;</span> Table
+        </button>
+        <div class="roster-dropdown hidden" id="rosterDropdown"></div>
+      </div>
+      <button class="btn btn-ghost" id="leaveBtn">Leave</button>
+    </div>
+  </header>
+
+  <div class="room-grid" id="roomGrid">
+
+    <!-- LEFT SIDEBAR — DM's own character, mirrors the player layout.
+         Hidden entirely for players, and for a DM with no character. -->
+    <aside class="sidebar" id="leftSidebar">
+      <div class="tab-bar" id="leftTabBar">
+        <button data-tab="stats" class="active">Stats</button>
+        <button data-tab="condition">Condition</button>
+        <button data-tab="notes">DM Notes</button>
+        <button data-tab="dice">Dice</button>
+      </div>
+      <div class="tab-panel active" data-panel="stats" id="leftStatsPanel"></div>
+      <div class="tab-panel" data-panel="condition" id="leftConditionPanel"></div>
+      <div class="tab-panel" data-panel="notes" id="leftNotesPanel"></div>
+      <div class="tab-panel" data-panel="dice" id="leftDicePanel"></div>
+    </aside>
+
+    <!-- CENTER — shared story / chat feed -->
+    <section class="story-column">
+      <div class="story-feed" id="storyFeed"></div>
+      <form class="composer" id="composerForm">
+        <input id="composerInput" placeholder="Say something to the table…" autocomplete="off" />
+        <button class="btn btn-primary" type="submit">Send</button>
+      </form>
+    </section>
+
+    <!-- RIGHT SIDEBAR — Player tabs OR DM Tools, depending on role -->
+    <aside class="sidebar right" id="rightSidebar">
+      <div class="tab-bar" id="rightTabBar"></div>
+      <div id="rightPanels"></div>
+    </aside>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     DM TUTORIAL MODAL — populated by dm-tools.js
+     ============================================================ -->
+<div id="tutorialModal" class="modal-overlay hidden">
+  <div class="modal-card" id="tutorialModalCard"></div>
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+<script>
+/* ================= firebase-config.js ================= */
+/**
+ * firebase-config.js
+ * -----------------------------------------------------------------------
+ * Fill this in with your own Firebase project's config (Project settings
+ * → General → "Your apps" → SDK setup and configuration → Config) and
+ * enable Cloud Firestore (Build → Firestore Database → Create database)
+ * in the Firebase console before loading the app.
+ *
+ * For local prototyping you can leave Firestore in "test mode" security
+ * rules. Before sharing this app with real users, lock the rules down —
+ * at minimum, require auth and scope reads/writes to rooms the caller
+ * belongs to.
+ * -----------------------------------------------------------------------
+ */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCPUctaUizOVW2Vhpi992sQ2hgXrExhtxo",
+  authDomain: "d-d-project.firebaseapp.com",
+  projectId: "d-d-project",
+  storageBucket: "d-d-project.firebasestorage.app",
+  messagingSenderId: "910979359849",
+  appId: "1:910979359849:web:ba0cc64df137575c1aeef8",
+  measurementId: "G-GRT1XSGH74",
+};
+
+firebase.initializeApp(firebaseConfig);
+
+// Shared Firestore handle used by db.js and sync.js.
+const firestoreDB = firebase.firestore();
+
+
+/* ================= gamedata.js ================= */
+/**
+ * gamedata.js
+ * -----------------------------------------------------------------------
+ * Default game-system data seeded from "DM_info.pdf" (the Quevela ruleset).
+ * This is the DM's starting library: spells, items, sword styles, world
+ * lore, races, and enemies. The DM can extend/override any of this from
+ * the DM Tools panel — see db.addCustomSkill() in db.js.
+ *
+ * Everything here is plain data (no logic) so it can be swapped for a
+ * real API response (`GET /api/gamedata`) without touching the UI code.
+ * -----------------------------------------------------------------------
+ */
+
+const GameData = {
+
+  /* ---------------------------------------------------------------- *
+   * The seven core attributes players spend points on.
+   * ---------------------------------------------------------------- */
+  attributes: ["Damage", "Speed", "Stealth", "Vitality", "Magic", "Knowledge", "Fortitude"],
+  attributeCap: 10, // hard cap per attribute
+
+  /* ---------------------------------------------------------------- *
+   * Magic: four elements, each with tiers. Sub Category spells require
+   * talent in two or more elements and are flagged `subCategory: true`.
+   * ---------------------------------------------------------------- */
+  magic: {
+    fire: {
+      label: "Fire",
+      summary: "By releasing and controlling concentrated energy into your surroundings, you can spark fires and control fire in your environment.",
+      tiers: {
+        beginner: [
+          { name: "Fireball", desc: "Focus a surge of heat into one point, igniting the gases and launching them at the enemy." },
+          { name: "Heat Flash", desc: "Using the light energy from heat, blind the enemy momentarily by exaggerating the light in a small fire." },
+          { name: "Hot Hands", desc: "Infuse your hands with fire, allowing you to burn anybody you touch." },
+          { name: "Smoke Bomb", desc: "Combine simple Fire and Water magic to create a cloud of steam/smoke to avoid an enemy.", subCategory: true },
+        ],
+        intermediate: [
+          { name: "Fire Wave", desc: "Use the heat of your body to form a large wall of fire, then push it at the enemy dealing AOE damage." },
+          { name: "Explosion", desc: "Create fire, expand it, and release its energy quickly causing a massive explosion — not much accuracy or control." },
+          { name: "Blue Blast", desc: "Create a flame so hot it becomes blue, fired directly at the enemy, scorching them." },
+        ],
+        advanced: [
+          { name: "Fire Ring", desc: "Cast controlled fire around enemies to create a ring of fire, effectively trapping them." },
+          { name: "Flame Enchant", desc: "Use your control of fire to coat your (or someone else's) weapon in fire." },
+          { name: "Pyromancy", desc: "Become immune to fire by surrounding yourself with a more powerful flame that wards off any other fire, slowly consuming mana." },
+        ],
+        unique: [
+          { name: "Fire Enhance", desc: "Enhance the heat of an already lit flame. A weak user only gets utility use; a skilled user can enhance a spell's power." },
+          { name: "Portable Stove", desc: "Utilizing both earth and fire magic, create an earthen pan and heat its bottom to cook food or clean water." },
+          { name: "Flare Gun", desc: "Create a weak but massive shot of fire and shoot it into the air to call allies over — may also call unwanted enemies." },
+          { name: "Fire Brand", desc: "Use fire to brand a symbol or word onto someone or yourself. Cannot be removed." },
+          { name: "Permanent Fire", desc: "Create a flame that cannot go out even without fuel, draining your mana as its power source." },
+          { name: "Fireworks", desc: "Create colorful flames that can distract or impress people." },
+        ],
+        ultimate: [
+          { name: "Purple Blast", desc: "Create a powerful flame so hot it becomes purple, firing it straight at your enemy — a very powerful blast at the cost of lots of mana." },
+          { name: "Fire Ignite", desc: "Ignite an incredibly powerful fire all around an enemy, setting them ablaze. Unavoidable." },
+          { name: "Wildfire", desc: "Unleash a powerful wave of self-sustaining fire into the environment, scorching everything in its path." },
+          { name: "Lightning Strike", desc: "Strike your enemy with lightning. Requires proficiency in Water, Fire and Wind magic to create a cloud and increase its electrical charge.", subCategory: true },
+          { name: "Meteor", desc: "Combine Earth and Fire magic to make a massive ball of earth, then apply fire to it, creating a meteor.", subCategory: true },
+        ],
+      },
+    },
+    water: {
+      label: "Water",
+      summary: "By manipulating the hydrogen and oxygen atoms in the air using your mana, you can create and telekinetically manipulate water in the air.",
+      tiers: {
+        beginner: [
+          { name: "Water Blast", desc: "A simple water spell that shoots a bit of water at a quick speed." },
+          { name: "Puddle", desc: "Summon puddles of water on the floor to potentially trip your opponent." },
+        ],
+        intermediate: [
+          { name: "Jet Shot", desc: "Create a blob of water, compress it into a torpedo shape, and fire it at the enemy with power and speed." },
+          { name: "Water Wave", desc: "Create a big wave of water to move back a large group of enemies, without dealing much damage." },
+          { name: "Ice Smash", desc: "Create a big piece of ice over an opponent's head using Fire magic to remove the heat from water, then drop it on them.", subCategory: true },
+        ],
+        advanced: [
+          { name: "Water Dolls", desc: "Control multiple balls of water to create small water figures that can jump an enemy, attacking from all angles." },
+          { name: "Mud Stop", desc: "Manipulate water into the ground to create mud, slowing the enemy and stopping them in their tracks." },
+          { name: "Suffocation", desc: "Suffocate the target by stopping the movement of their blood, stopping their heart. Requires great control." },
+          { name: "Adrenaline Rush", desc: "Manipulate the water in your own blood to increase heart rate, letting you move and react quicker at the cost of your health. Last resort." },
+          { name: "Icicle Burst", desc: "Create multiple shards of ice using Fire and Water magic to remove heat, firing them at the enemy in a multi-shot burst.", subCategory: true },
+        ],
+        unique: [
+          { name: "Water Breathing", desc: "Manipulate the oxygen in inhaled water so only oxygen enters your body underwater, letting you breathe. Consumes mana over time." },
+          { name: "Water Distill", desc: "Create water with simple water magic and heat it with fire magic to distill it into clean water." },
+          { name: "River-flow", desc: "Push boats forward with water magic, allowing faster water travel." },
+          { name: "Cloudy Day", desc: "Use wind and water magic to create rain clouds at will — purely cosmetic, makes it rain out of nowhere.", subCategory: true },
+        ],
+        ultimate: [
+          { name: "Water Leviathan", desc: "Create a large body of water shaped into a massive leviathan, impervious to (but incapable of) physical attacks; the caster shoots water spells from it." },
+          { name: "Encashment", desc: "Trap opponents in a body of water that follows their center of mass, limiting movement and eventually drowning them. Works on several people at once." },
+          { name: "Flash-flood", desc: "Gush water into the environment, disrupting all activity and likely killing many. Highly destructive." },
+        ],
+      },
+    },
+    wind: {
+      label: "Wind",
+      summary: "By using your mana you can manipulate the speed of air around you.",
+      tiers: {
+        beginner: [
+          { name: "Wind Gust", desc: "A simple wind spell that gusts powerful wind at an enemy, possibly moving them back." },
+          { name: "Speed Boost", desc: "Manipulate the wind around you to increase your movement speed." },
+          { name: "Imbalance", desc: "Throw off an enemy's balance by slightly moving their limbs, making it difficult to attack or dodge." },
+        ],
+        intermediate: [
+          { name: "Deafen", desc: "Deafen and confuse an opponent by creating strong, sharp air pressure inside their ears." },
+          { name: "Wind Charge", desc: "An advanced Speed Boost — launch yourself at your enemy with incredible speed and power. Hard to aim, very damaging." },
+          { name: "Wind Bullet", desc: "Compress air into a small ball and shoot it at the enemy, piercing a hole into anything if the user is skilled enough." },
+        ],
+        advanced: [
+          { name: "Wind Cutters", desc: "Slice enemies using concentrated mana and air shot quickly, from a distance or up close." },
+          { name: "Decapitation", desc: "Concentrate air pressure into a small area and shoot it at an enemy's neck. Easy to dodge due to its small size." },
+          { name: "Smack Down", desc: "Lift the opponent using wind, then smack them onto the ground." },
+          { name: "Debris Storm", desc: "Gather debris on the ground, launch it at an enemy, then create a spiral of debris on them." },
+        ],
+        unique: [
+          { name: "Wind Blast", desc: "A big blast of wind that blows back enemies or the caster to escape or create distance quickly. Not very combat effective." },
+          { name: "Flight", desc: "Manipulate the wind under your feet to raise yourself up and fly quickly with skill." },
+          { name: "Wind Call", desc: "Amplify your voice with wind control to call for help or get everyone's attention." },
+          { name: "Fire Dispel", desc: "Remove the air/oxygen from a fire to extinguish it. Requires extreme control — can accidentally empower the fire instead." },
+        ],
+        ultimate: [
+          { name: "Suffocation", desc: "Use great control of air to expand the air inside someone's lungs, causing them to suffocate to death." },
+          { name: "Tornado", desc: "Create a powerful, building flow of wind that becomes a massive tornado you can launch at a group of enemies." },
+        ],
+      },
+    },
+    earth: {
+      label: "Earth",
+      summary: "You can manipulate and multiply the atoms in the ground to make compact stones or blocks using the earth.",
+      tiers: {
+        beginner: [
+          { name: "Rock Dart", desc: "Summon a simple dart or ball of compacted earth and launch it to stagger the enemy." },
+          { name: "Rock Wall", desc: "Manipulate the earth to create a simple wall in front of you and the enemy, blocking sight and attack." },
+        ],
+        intermediate: [
+          { name: "Rock Ensnare", desc: "Manipulate the earth around an enemy to ensnare them in a tight ball of earth." },
+          { name: "Gear Up", desc: "Create a shield and sword out of earth — quality depends on mastery and available resources." },
+        ],
+        advanced: [
+          { name: "Clay Drill", desc: "Create a rapidly spinning drill of earth that can be fired to drill into an enemy." },
+          { name: "Quick Sand", desc: "Manipulate the earth to create quick sand, trapping the enemy. (Countered by Sword Water Style.)" },
+          { name: "Armour Up", desc: "Create armour from the earth around you — quality depends on available resources." },
+          { name: "Heal", desc: "Manipulate natural resources in water and earth to heal a wound — effectiveness depends on skill. Requires some fire skill to close the wound with heat.", subCategory: true },
+        ],
+        unique: [
+          { name: "Clay Wagon", desc: "Manipulate earth into a wheeled wagon you can move with mana — a means of transport." },
+          { name: "Figure Create", desc: "Manipulate earth into a small doll or figure of someone — accuracy depends on how well you know them." },
+          { name: "Trap", desc: "Create a trapdoor that drops any enemy who steps on it into a pit of spikes." },
+          { name: "Clay Manipulation", desc: "Manipulate earth into any structure your imagination and skill allow, such as a house or statue." },
+        ],
+        ultimate: [
+          { name: "Clay Giant", desc: "Create a giant clay doll (with its own health) that regenerates when damaged, at the cost of mana. Can shoot darts of earth." },
+          { name: "Sink Hole", desc: "Create a massive sink hole underneath a large group of enemies to trap or kill them." },
+          { name: "Volcano", desc: "Requires high skill in both fire and earth magic — spontaneously generate an actively erupting volcano, causing great havoc.", subCategory: true },
+        ],
+      },
+    },
+  },
+
+  /* Non-elemental "Intellectual" magic skills — not tied to a single element tier. */
+  intellectualSkills: [
+    { name: "Intuition", desc: "See your opponent's moves before they do them, making it easier to dodge." },
+    { name: "Manifest", desc: "Align your thoughts and beliefs into reality, bending logic to your will." },
+    { name: "Manipulate", desc: "Encourage your opponent to do whatever you please, using magic power to convince them." },
+    { name: "Hallucinate", desc: "Cause your opponent to hallucinate several versions of you. Stronger casters can make the opponent genuinely feel the hallucinations' attacks." },
+    { name: "Degrade", desc: "Mentally deteriorate your enemy, making them less aware and slowly driving them into madness." },
+  ],
+
+  /* ---------------------------------------------------------------- *
+   * Items: scrolls, potions, gear (with quality tiers), artifacts.
+   * ---------------------------------------------------------------- */
+  items: {
+    scrolls: {
+      summary: "Anything that allows you to learn a spell. Roll to learn it on the spot (10+ succeeds). One-time use, even on failure. Missing a prerequisite spell gives a -2 disadvantage.",
+      tiers: ["Beginner", "Intermediate", "Advanced", "Unique", "Ultimate"],
+      elementRollTable: { 1: "Fire", 2: "Water", 3: "Wind", 4: "Earth" },
+    },
+    potions: [
+      { name: "Healing Potion", desc: "Heals the player for 75% of their HP. Rare — most commonly found in the Elven Heaps or Elovian Farlands." },
+      { name: "Fire Potion", desc: "Deals fire damage to low-constitution players, but increases fire resistance after drinking." },
+      { name: "Love Potion", desc: "Gives the drinker +10 Charisma; everyone flirts with them when spoken to." },
+    ],
+    gearQualityTiers: ["Damaged", "Artisan", "Noble", "Pristine"],
+    gearSets: [
+      { race: "Demi-Human", bonus: "Sword/spear combat and Constitution", slots: ["Warriors Headband (Constitution)", "Crusaders Helmet (Slash Resistance)", "Warriors Armplates (sword/spear roll bonus)"] },
+      { race: "Human", bonus: "Charisma; can disguise the wearer in human territory", slots: ["Biblical-motif regalia (headware/chest/arm/foot/weapon slots — details TBD by DM)"] },
+      { race: "Demon", bonus: "Constitution and Strength", slots: ["Forged from tough metals of the Badlands caves (slot details TBD by DM)"] },
+      { race: "Orc", bonus: "Blunt damage and Constitution", slots: ["Heavy stone and scavenged gear (slot details TBD by DM)"] },
+      { race: "Elf", bonus: "Dexterity and Wisdom", slots: ["Lightweight gear for moving through trees (slot details TBD by DM)"] },
+      { race: "Elovian", bonus: "Wisdom and magic-related attacks; increases mana capacity", slots: ["Mana-focused regalia (slot details TBD by DM)"] },
+      { race: "Godly", bonus: "Large bonuses to the god's respective expertise", slots: ["Artifacts left behind by the gods (slot details TBD by DM)"] },
+      { race: "Cursed", bonus: "Unique bonuses, blessed or cursed", slots: ["Special gear blessed/cursed by the Gods or a Crafter (slot details TBD by DM)"] },
+    ],
+    artifacts: [
+      { name: "Elovian Mana Crystal", desc: "Flow mana into the crystal to see any place or person you know the appearance of." },
+      { name: "Sacrificial Dagger", desc: "Used on 10 living humans, this mana-infused blade returns a god from the dead — the revival's location and identity cannot be chosen." },
+    ],
+  },
+
+  /* ---------------------------------------------------------------- *
+   * Sword styles — mastery track: Beginner -> Intermediate -> Advanced
+   * -> Veteran -> Noble -> Master -> God. Only one style may reach God.
+   * Veteran is the cap if training all four styles.
+   * ---------------------------------------------------------------- */
+  swordStyles: [
+    {
+      name: "Sword Saint Style",
+      origin: "Northern region — developed by outcast Elovians with no talent for magic.",
+      desc: "Swift, elegant strikes. Effective against rogues and smaller enemies; ineffective against large brutes who shrug off small slashes.",
+    },
+    {
+      name: "Sword Brute Style",
+      origin: "Badlands — developed by demons to train the young against Orc raids.",
+      desc: "Large, heavy strikes using the whole body's chain of motion. Effective against big, tanky enemies; ineffective against smaller, agile ones.",
+    },
+    {
+      name: "Sword Water Style",
+      origin: "The swamps, home to an elf village with poor footing for archery.",
+      desc: "Wind magic used to imitate flowing water, letting the user move freely in bad terrain while enemies get stuck. Effective against magic users trying to keep distance; ineffective against enemies who don't need distance, like rogues.",
+    },
+    {
+      name: "Sword Fiend Style",
+      origin: "The woods, home to the Demi-Humans — developed to fight humans.",
+      desc: "Quick, animal-like claw strikes built to break shields and spears. Very effective against human sword/spear/shield wielders; ineffective against thick-skinned animals or monsters without weapons.",
+    },
+  ],
+  swordMasteryLevels: ["Beginner", "Intermediate", "Advanced", "Veteran", "Noble", "Master", "God"],
+
+  /* ---------------------------------------------------------------- *
+   * World: Quevela and its five regions.
+   * ---------------------------------------------------------------- */
+  world: {
+    name: "Quevela",
+    regions: [
+      { name: "Elven Heaps", desc: "A fast forest filled with wild animals. Elegant elves hunt and survive using quiet tactics; mostly peaceful." },
+      { name: "BadLands", desc: "A red-hot wasteland where demons and orcs are constantly at war. Barren, but powerful brute weaponry can be found." },
+      { name: "Supalania", desc: "The biggest landmass, fully colonized by humans devoted to the Gods' goal of destroying the Elovian rebels. Demi-humans in between prevent that goal." },
+      { name: "Demihuman Turf", desc: "Half-breeds rejected by other nations flee here. They refuse to take sides, the sole mitigator preventing an eventual war." },
+      { name: "Elovian Farlands", desc: "The mysterious Elovians keep to themselves, studying magic and sorcery. Not much is known about what happens there." },
+    ],
+  },
+
+  /* ---------------------------------------------------------------- *
+   * Races / Factions
+   * ---------------------------------------------------------------- */
+  races: [
+    { name: "Elovian", desc: "Dedicated to study; mostly wizards and mages with their own secret language. The most advanced spellcasters, some seeking to kill spirits and the Gods themselves." },
+    { name: "Human", desc: "Ancestors of the Elovians. Serve the Gods as religious warriors, fighting for the Gods' ultimate goal of retaking the world." },
+    { name: "Elves", desc: "Weak in strength but excel at wind magic and bows, with a secret arrow technique. Isolated and sneaky, hidden in dense forests." },
+    { name: "Orks", desc: "Sworn enemies of most semi-human races. No hesitation to kill; live in large, self-trained warbands wielding swords and spears." },
+    { name: "Demons", desc: "A harsher human offshoot — physically strong, naturally aggressive from their harsh homeland, with suppressed magical ability. Can be won over by genuine kindness." },
+    { name: "Gods", desc: "Powerful spirit-beings born from ancient humans who learned magic. Hold a grudge against humanity but manipulate humans into worship anyway." },
+    { name: "Demi-Gods", desc: "Offspring of Gods, born with extreme mana that attracts strong monsters. Rarely survive to adulthood, but could rival the Gods if they do." },
+    { name: "Demi-Humans", desc: "Animal-featured people, the second-largest race. Welcoming to others; the main opposition to god- and human-controlled empires." },
+  ],
+
+  /* ---------------------------------------------------------------- *
+   * Enemies / Monsters
+   * ---------------------------------------------------------------- */
+  enemies: {
+    global: [
+      { name: "Mercenaries", desc: "Hireable by anyone to kill anybody or anything for a price. Skill varies widely." },
+      { name: "Slimes", desc: "Weak monsters found nearly everywhere, able to use beginner-level spells of their region." },
+    ],
+    "Elven Heaps": [
+      { name: "Elemental Wolves", desc: "Weak in Constitution, but can use varying elements up to Intermediate level, plus sharp claws in close combat." },
+    ],
+    BadLands: [
+      { name: "Dragons", desc: "Extremely powerful, rarely seen monsters living in the unexplored northern Badlands. Usually found in groups." },
+    ],
+    Supalania: [],
+    "Demi-human Turf": [],
+    "Elovian Farlands": [],
+  },
+
+  /* ---------------------------------------------------------------- *
+   * Adventurers' Guild ranks and rules.
+   * ---------------------------------------------------------------- */
+  guild: {
+    ranks: ["F", "D", "C", "B", "A", "S"],
+    maxPartySize: 10,
+    rules: [
+      "A new party always starts at F rank and may only take jobs of its current rank.",
+      "A party must take and complete at least one job every month to stay together.",
+      "After 5 successful jobs at a rank, the party may ask the guildmaster to rank up — all members must agree.",
+    ],
+  },
+};
+
+// Flatten every spell across all elements/tiers into one lookup array —
+// used by the "unlock threshold" picker in the DM Tools panel.
+GameData.allSpells = Object.entries(GameData.magic).flatMap(([elementKey, element]) =>
+  Object.entries(element.tiers).flatMap(([tier, spells]) =>
+    spells.map((s) => ({ ...s, element: elementKey, elementLabel: element.label, tier }))
+  )
+);
+
+if (typeof module !== "undefined") module.exports = GameData;
+
+
+/* ================= db.js ================= */
+/**
+ * db.js
+ * -----------------------------------------------------------------------
+ * Data layer backed by Cloud Firestore (see firebase-config.js for setup).
+ * Every collection below maps 1:1 to a table in SCHEMA.md. Nothing outside
+ * this file talks to Firestore directly — callers just `await` these
+ * methods, same shapes as before, just asynchronous now.
+ * -----------------------------------------------------------------------
+ */
+
+function col(name) {
+  return firestoreDB.collection(name);
+}
+
+function docToObj(doc) {
+  return { id: doc.id, ...doc.data() };
+}
+
+function sortByCreatedAt(rows) {
+  return rows.sort((a, b) => a.createdAt - b.createdAt);
+}
+
+const DB = {
+  /* ---------------------------------------------------------- users */
+  async createUser(username, password) {
+    const clash = await col("users").where("usernameLower", "==", username.toLowerCase()).limit(1).get();
+    if (!clash.empty) {
+      throw new Error("That username is already taken.");
+    }
+    const data = { username, usernameLower: username.toLowerCase(), password, createdAt: Date.now() };
+    const ref = await col("users").add(data);
+    return { id: ref.id, ...data };
+  },
+
+  async findUser(username, password) {
+    const snap = await col("users").where("usernameLower", "==", username.toLowerCase()).get();
+    const match = snap.docs.find((d) => d.data().password === password);
+    return match ? docToObj(match) : null;
+  },
+
+  async getUser(userId) {
+    if (!userId) return null;
+    const doc = await col("users").doc(userId).get();
+    return doc.exists ? docToObj(doc) : null;
+  },
+
+  /* ---------------------------------------------------------- rooms */
+  async createRoom({ name, dmUserId, pointBudget }) {
+    const code = Math.random().toString(36).slice(2, 7).toUpperCase();
+    const data = {
+      code,
+      name: name || `${code}'s Table`,
+      dmUserId,
+      pointBudget: Number(pointBudget) || 20,
+      createdAt: Date.now(),
+    };
+    const ref = await col("rooms").add(data);
+    return { id: ref.id, ...data };
+  },
+
+  async getRoomByCode(code) {
+    const snap = await col("rooms").where("code", "==", code.toUpperCase()).limit(1).get();
+    return snap.empty ? null : docToObj(snap.docs[0]);
+  },
+
+  async getRoom(roomId) {
+    if (!roomId) return null;
+    const doc = await col("rooms").doc(roomId).get();
+    return doc.exists ? docToObj(doc) : null;
+  },
+
+  /**
+   * Turn / chat-lock state lives directly on the room document:
+   *   activeCharacterId  — id of the character whose turn it is, or null
+   *   chatUnlocked       — true if the DM has opened chat to everyone
+   *   rollUnlocked       — true if the DM has opened free rolling to everyone
+   * All three default to "locked down" (null / false / false) so a fresh
+   * room starts silent until the DM says otherwise.
+   */
+  async setRoomTurn(roomId, activeCharacterId) {
+    await col("rooms").doc(roomId).update({ activeCharacterId: activeCharacterId || null });
+    return DB.getRoom(roomId);
+  },
+
+  async setChatUnlocked(roomId, chatUnlocked) {
+    await col("rooms").doc(roomId).update({ chatUnlocked: !!chatUnlocked });
+    return DB.getRoom(roomId);
+  },
+
+  async setRollUnlocked(roomId, rollUnlocked) {
+    await col("rooms").doc(roomId).update({ rollUnlocked: !!rollUnlocked });
+    return DB.getRoom(roomId);
+  },
+
+  /* ----------------------------------------------------- characters */
+  emptyStats() {
+    const stats = {};
+    GameData.attributes.forEach((a) => (stats[a] = 0));
+    return stats;
+  },
+
+  async upsertCharacter(character) {
+    const { id, ...data } = character;
+    if (id) {
+      await col("characters").doc(id).set(data, { merge: false });
+      return { id, ...data };
+    }
+    const ref = await col("characters").add(data);
+    return { id: ref.id, ...data };
+  },
+
+  async createCharacter({ roomId, userId, name, isDM }) {
+    const data = {
+      roomId,
+      userId,
+      name,
+      isDM: !!isDM,
+      stats: DB.emptyStats(),
+      pointsSpent: 0,
+      built: false,
+      skipped: false,
+      hp: { current: 20, max: 20 },
+      statusEffects: [],
+      inventory: [],
+      unlockedSkills: [],
+      swordStyle: null,
+      swordMastery: null,
+      knownSpells: [],
+      createdAt: Date.now(),
+    };
+    const ref = await col("characters").add(data);
+    return { id: ref.id, ...data };
+  },
+
+  async getCharactersByRoom(roomId) {
+    const snap = await col("characters").where("roomId", "==", roomId).get();
+    return sortByCreatedAt(snap.docs.map(docToObj));
+  },
+
+  async getCharacterByUserAndRoom(userId, roomId) {
+    const snap = await col("characters")
+      .where("roomId", "==", roomId)
+      .where("userId", "==", userId)
+      .limit(1)
+      .get();
+    return snap.empty ? null : docToObj(snap.docs[0]);
+  },
+
+  async getCharacter(characterId) {
+    if (!characterId) return null;
+    const doc = await col("characters").doc(characterId).get();
+    return doc.exists ? docToObj(doc) : null;
+  },
+
+  /* -------------------------------------------------------- messages */
+  async addMessage({ roomId, authorId, authorName, type, text, meta }) {
+    const data = {
+      roomId,
+      authorId,
+      authorName,
+      type: type || "chat", // 'chat' | 'system' | 'roll' | 'whisper'
+      text,
+      meta: meta || null,
+      createdAt: Date.now(),
+    };
+    const ref = await col("messages").add(data);
+    return { id: ref.id, ...data };
+  },
+
+  async getMessagesByRoom(roomId) {
+    const snap = await col("messages").where("roomId", "==", roomId).get();
+    return sortByCreatedAt(snap.docs.map(docToObj));
+  },
+
+  /* ---------------------------------------------------- dice requests */
+  async createDiceRequest({ roomId, targetCharacterId, requestedBy, sides, label }) {
+    const data = {
+      roomId,
+      targetCharacterId,
+      requestedBy,
+      sides: sides || 20,
+      label: label || "",
+      status: "pending", // 'pending' | 'completed'
+      result: null,
+      createdAt: Date.now(),
+    };
+    const ref = await col("diceRequests").add(data);
+    return { id: ref.id, ...data };
+  },
+
+  async completeDiceRequest(requestId, result) {
+    const ref = col("diceRequests").doc(requestId);
+    const doc = await ref.get();
+    if (!doc.exists) return null;
+    await ref.update({ status: "completed", result });
+    return { id: doc.id, ...doc.data(), status: "completed", result };
+  },
+
+  async getPendingDiceRequests(roomId, characterId) {
+    const snap = await col("diceRequests")
+      .where("roomId", "==", roomId)
+      .where("targetCharacterId", "==", characterId)
+      .where("status", "==", "pending")
+      .get();
+    return sortByCreatedAt(snap.docs.map(docToObj));
+  },
+
+  /* --------------------------------------------------------- dm notes */
+  async addDMNote({ roomId, authorId, text, visibility }) {
+    const data = {
+      roomId,
+      authorId,
+      text,
+      visibility: visibility || "private", // 'private' | 'public'
+      createdAt: Date.now(),
+    };
+    const ref = await col("dmNotes").add(data);
+    return { id: ref.id, ...data };
+  },
+
+  async getDMNotes(roomId) {
+    const snap = await col("dmNotes").where("roomId", "==", roomId).get();
+    return sortByCreatedAt(snap.docs.map(docToObj));
+  },
+
+  /* ------------------------------------------------------ custom skills */
+  async addCustomSkill({ roomId, name, description, thresholdAttribute, thresholdValue }) {
+    const data = {
+      roomId,
+      name,
+      description,
+      thresholdAttribute,
+      thresholdValue: Number(thresholdValue) || 0,
+      createdAt: Date.now(),
+    };
+    const ref = await col("customSkills").add(data);
+    return { id: ref.id, ...data };
+  },
+
+  async getCustomSkills(roomId) {
+    const snap = await col("customSkills").where("roomId", "==", roomId).get();
+    return sortByCreatedAt(snap.docs.map(docToObj));
+  },
+
+  /* ------------------------------------------------------- current session
+   * The session pointer (who am I / which room / which character, right
+   * now, in this tab) is deliberately kept in sessionStorage rather than
+   * Firestore — it's local UI state, not shared game data, and doesn't
+   * need to sync across devices or survive the tab closing.
+   */
+  setSession({ userId, roomId, characterId }) {
+    sessionStorage.setItem("vtt:session", JSON.stringify({ userId, roomId, characterId }));
+  },
+
+  getSession() {
+    try {
+      return JSON.parse(sessionStorage.getItem("vtt:session"));
+    } catch {
+      return null;
+    }
+  },
+
+  clearSession() {
+    sessionStorage.removeItem("vtt:session");
+  },
+};
+
+
+/* ================= auth.js ================= */
+/**
+ * auth.js
+ * -----------------------------------------------------------------------
+ * Minimal client-side auth for the prototype. Passwords are stored in
+ * plaintext in Firestore — that is only acceptable for a local prototype.
+ * A production build must hash passwords server-side (bcrypt/argon2, or
+ * better, use Firebase Authentication instead of hand-rolled accounts)
+ * and never keep credentials readable from the client; see SCHEMA.md's
+ * `users` table for the intended real shape (password_hash, not password).
+ *
+ * The "who's currently signed in on this browser" pointer is kept in
+ * localStorage, same as before — it's a local convenience (so you don't
+ * have to log in again on refresh), not shared game data, so it doesn't
+ * need to live in Firestore.
+ * -----------------------------------------------------------------------
+ */
+
+const CURRENT_USER_KEY = "vtt:currentUserId";
+
+async function getCurrentUser() {
+  const id = localStorage.getItem(CURRENT_USER_KEY);
+  return id ? await DB.getUser(id) : null;
+}
+
+function signIn(user) {
+  localStorage.setItem(CURRENT_USER_KEY, user.id);
+}
+
+function signOut() {
+  localStorage.removeItem(CURRENT_USER_KEY);
+  DB.clearSession();
+}
+
+
+/* ================= sync.js ================= */
+/**
+ * sync.js
+ * -----------------------------------------------------------------------
+ * Real-time layer. Events are written to the `rooms/{roomId}/events`
+ * subcollection in Firestore and every connected client listens with
+ * `onSnapshot`, so a DM action shows up live on every player's screen —
+ * across tabs, browsers, and devices — not just other tabs of the same
+ * browser. Swap Sync.emit/Sync.on for socket.emit/socket.on if you'd
+ * rather run a dedicated WebSocket layer instead; the event catalogue
+ * below is the contract either way.
+ *
+ * Every emitted event is tagged with this tab's clientId. emit() fires
+ * listeners locally right away *and* writes the event to Firestore so
+ * other tabs hear it — but this tab is also subscribed to that same
+ * Firestore stream, so without the clientId check below it would hear
+ * its own write come back and fire the listener a second time (visible
+ * as duplicated chat lines, etc). The onSnapshot handler skips any
+ * event whose clientId matches our own for exactly that reason.
+ * -----------------------------------------------------------------------
+ */
+
+const Sync = (() => {
+  const clientId = `client_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  let unsubscribe = null;
+  let connectedAt = 0;
+  const listeners = {};
+
+  function connect(roomId) {
+    if (unsubscribe) unsubscribe();
+    connectedAt = Date.now();
+
+    unsubscribe = firestoreDB
+      .collection("rooms")
+      .doc(roomId)
+      .collection("events")
+      .where("createdAt", ">", connectedAt)
+      .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type !== "added") return;
+          const { type, payload, clientId: senderId } = change.doc.data();
+          if (senderId === clientId) return; // already handled locally in emit()
+          (listeners[type] || []).forEach((fn) => fn(payload));
+        });
+      });
+  }
+
+  function disconnect() {
+    if (unsubscribe) unsubscribe();
+    unsubscribe = null;
+  }
+
+  function emit(type, payload) {
+    // Fire locally first so the sender's own UI updates immediately —
+    // no need to round-trip through Firestore for your own action.
+    (listeners[type] || []).forEach((fn) => fn(payload));
+
+    const session = DB.getSession();
+    if (!session || !session.roomId) return;
+    firestoreDB
+      .collection("rooms")
+      .doc(session.roomId)
+      .collection("events")
+      .add({ type, payload, clientId, createdAt: Date.now() });
+  }
+
+  function on(type, fn) {
+    listeners[type] = listeners[type] || [];
+    listeners[type].push(fn);
+  }
+
+  return { connect, disconnect, emit, on };
+})();
+
+/*
+ * Event catalogue (payload shapes) — the contract between DM Tools and
+ * every connected player's UI:
+ *
+ *   "chat:new"          { message }                       new chat/system/roll line
+ *   "character:update"  { character }                     stats/HP/inventory/status changed, or a character newly built
+ *   "dice:request"      { request, characterId }           DM asked one player to roll
+ *   "dice:result"       { request }                        a roll was completed
+ *   "note:public"       { note }                           DM pushed a visible note/whisper
+ *   "skill:new"         { skill }                          DM added a custom skill/threshold
+ *   "turn:update"       { activeCharacterId }               DM changed whose turn it is (or cleared it)
+ *   "chat:lock"         { chatUnlocked }                     DM opened/closed chat for everyone
+ *   "roll:lock"         { rollUnlocked }                     DM opened/closed free rolling for everyone
+ */
+
+
+/* ================= dice.js ================= */
+/**
+ * dice.js — shared dice-rolling logic used by both the player Dice tab
+ * and the DM's "force a roll" tool.
+ */
+
+const Dice = {
+  roll(sides) {
+    return 1 + Math.floor(Math.random() * sides);
+  },
+
+  /**
+   * Renders a pending dice-request card into `container` for the player
+   * who owns it, animates a short "rolling" beat, then resolves the
+   * request in the DB, tells every tab about it via Sync, and posts the
+   * result into the shared story feed.
+   */
+  renderRequestCard(container, request, character) {
+    const card = document.createElement("div");
+    card.className = "dice-request-card";
+    card.innerHTML = `
+      <p><strong>${escapeHtml(request.label || "The Dice Master")}</strong> asks you to roll a d${request.sides}.</p>
+      <div class="die-face" id="face-${request.id}">?</div>
+      <button class="btn btn-primary btn-block" id="rollBtn-${request.id}">Roll d${request.sides}</button>
+    `;
+    container.appendChild(card);
+
+    document.getElementById(`rollBtn-${request.id}`).addEventListener("click", () => {
+      const face = document.getElementById(`face-${request.id}`);
+      face.classList.add("rolling");
+      let ticks = 0;
+      const spin = setInterval(async () => {
+        face.textContent = Dice.roll(request.sides);
+        ticks++;
+        if (ticks > 8) {
+          clearInterval(spin);
+          face.classList.remove("rolling");
+          const result = Dice.roll(request.sides);
+          face.textContent = result;
+          await DB.completeDiceRequest(request.id, result);
+          const msg = await DB.addMessage({
+            roomId: request.roomId,
+            authorId: character.id,
+            authorName: character.name,
+            type: "roll",
+            text: `rolled a ${result} on d${request.sides}${request.label ? ` — ${request.label}` : ""}`,
+          });
+          Sync.emit("chat:new", { message: msg });
+          Sync.emit("dice:result", { request: { ...request, status: "completed", result } });
+          card.remove();
+        }
+      }, 90);
+    });
+  },
+
+  /** Free roll (no DM request) triggered by the player themselves. */
+  async freeRoll(sides, roomId, character) {
+    const result = Dice.roll(sides);
+    const msg = await DB.addMessage({
+      roomId,
+      authorId: character.id,
+      authorName: character.name,
+      type: "roll",
+      text: `rolled a ${result} on d${sides}`,
+    });
+    Sync.emit("chat:new", { message: msg });
+    return result;
+  },
+};
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+
+/* ================= lobby.js (lobby view controller) ================= */
+/**
+ * lobby.js — index.html controller: auth tabs + join/create room.
+ */
+
+const els = {
+  tabLogin: document.getElementById("tabLogin"),
+  tabRegister: document.getElementById("tabRegister"),
+  loginForm: document.getElementById("loginForm"),
+  registerForm: document.getElementById("registerForm"),
+  authArea: document.getElementById("authArea"),
+  lobbyArea: document.getElementById("lobbyArea"),
+  whoAmI: document.getElementById("whoAmI"),
+};
+
+function showAuthTab(which) {
+  const isLogin = which === "login";
+  els.tabLogin.classList.toggle("active", isLogin);
+  els.tabRegister.classList.toggle("active", !isLogin);
+  els.loginForm.classList.toggle("active", isLogin);
+  els.registerForm.classList.toggle("active", !isLogin);
+}
+els.tabLogin.addEventListener("click", () => showAuthTab("login"));
+els.tabRegister.addEventListener("click", () => showAuthTab("register"));
+
+async function refreshLobbyView() {
+  const user = await getCurrentUser();
+  if (user) {
+    els.authArea.classList.add("hidden");
+    els.lobbyArea.classList.remove("hidden");
+    els.whoAmI.textContent = user.username;
+  } else {
+    els.authArea.classList.remove("hidden");
+    els.lobbyArea.classList.add("hidden");
+  }
+}
+
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const msg = document.getElementById("loginMsg");
+  const user = await DB.findUser(username, password);
+  if (!user) {
+    msg.textContent = "No account matches that username and password.";
+    msg.className = "form-msg error";
+    return;
+  }
+  signIn(user);
+  msg.textContent = "";
+  refreshLobbyView();
+});
+
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("regUsername").value.trim();
+  const password = document.getElementById("regPassword").value;
+  const msg = document.getElementById("registerMsg");
+  try {
+    const user = await DB.createUser(username, password);
+    signIn(user);
+    msg.textContent = "";
+    refreshLobbyView();
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.className = "form-msg error";
+  }
+});
+
+document.getElementById("createForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const user = await getCurrentUser();
+  const name = document.getElementById("createName").value.trim();
+  const pointBudget = document.getElementById("createBudget").value;
+  const room = await DB.createRoom({ name, dmUserId: user.id, pointBudget });
+  // Room creator is permanently the DM for this room.
+  const character = await DB.createCharacter({ roomId: room.id, userId: user.id, name: `${user.username} (DM)`, isDM: true });
+  DB.setSession({ userId: user.id, roomId: room.id, characterId: character.id });
+  enterRoom();
+});
+
+document.getElementById("joinForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const user = await getCurrentUser();
+  const code = document.getElementById("joinCode").value.trim().toUpperCase();
+  const charName = document.getElementById("joinCharName").value.trim();
+  const msg = document.getElementById("joinMsg");
+
+  const room = await DB.getRoomByCode(code);
+  if (!room) {
+    msg.textContent = "No room found with that code.";
+    msg.className = "form-msg error";
+    return;
+  }
+
+  let character = await DB.getCharacterByUserAndRoom(user.id, room.id);
+  if (!character) {
+    character = await DB.createCharacter({
+      roomId: room.id,
+      userId: user.id,
+      name: charName || user.username,
+      isDM: room.dmUserId === user.id,
+    });
+  }
+  DB.setSession({ userId: user.id, roomId: room.id, characterId: character.id });
+  enterRoom();
+});
+
+document.getElementById("signOutBtn").addEventListener("click", () => {
+  signOut();
+  refreshLobbyView();
+});
+
+
+
+/* ================= room.js (room view controller) ================= */
+/**
+ * room.js — controller for room.html: character creation, the shared
+ * story feed, and the player-facing Stats / Condition / DM Notes / Dice
+ * tabs. DM-only tooling lives in dm-tools.js; both files cooperate over
+ * the same DOM and the Sync event bus.
+ */
+
+const STAT_COLORS = {
+  Damage: "var(--fire)",
+  Speed: "var(--wind)",
+  Stealth: "var(--earth)",
+  Vitality: "var(--danger)",
+  Magic: "var(--mana)",
+  Knowledge: "var(--water)",
+  Fortitude: "var(--parchment-dark)",
+};
+
+let session, user, room, myCharacter, isDM;
+
+let syncWired = false;
+let rosterWired = false;
+let composerWired = false;
+
+function showLobby() {
+  Sync.disconnect();
+  document.getElementById("creationView").classList.add("hidden");
+  document.getElementById("appView").classList.add("hidden");
+  document.getElementById("lobbyView").classList.remove("hidden");
+  document.getElementById("rosterDropdown").classList.add("hidden");
+  document.getElementById("tutorialModal").classList.add("hidden");
+  refreshLobbyView();
+}
+
+async function enterRoom() {
+  session = DB.getSession();
+  if (!session) return showLobby();
+  [user, room, myCharacter] = await Promise.all([
+    DB.getUser(session.userId),
+    DB.getRoom(session.roomId),
+    DB.getCharacter(session.characterId),
+  ]);
+  if (!user || !room || !myCharacter) {
+    DB.clearSession();
+    return showLobby();
+  }
+  isDM = room.dmUserId === user.id;
+
+  document.getElementById("lobbyView").classList.add("hidden");
+  Sync.connect(room.id);
+  if (!syncWired) { wireSyncListeners(); syncWired = true; }
+  if (!rosterWired) { wireRosterButton(); rosterWired = true; }
+
+  if (!myCharacter.built) {
+    showCreationView();
+  } else {
+    showAppView();
+  }
+}
+
+/* ==================================================================
+ * Turn / speaking-rights helpers
+ * ================================================================== */
+
+function isMyTurn() {
+  return !!room.activeCharacterId && room.activeCharacterId === myCharacter.id;
+}
+
+function canSpeak() {
+  return isDM || isMyTurn() || !!room.chatUnlocked;
+}
+
+function canRoll() {
+  return isDM || isMyTurn() || !!room.rollUnlocked;
+}
+
+/* ==================================================================
+ * Character creation
+ * ================================================================== */
+
+function showCreationView() {
+  document.getElementById("creationView").classList.remove("hidden");
+  document.getElementById("appView").classList.add("hidden");
+
+  const budget = room.pointBudget;
+  document.getElementById("creationBudgetLine").textContent =
+    `Distribute your ${budget} points across the seven attributes. No attribute may exceed ${GameData.attributeCap}.`;
+  document.getElementById("creationCharName").value = myCharacter.name || "";
+
+  const stats = { ...myCharacter.stats };
+  const rowsEl = document.getElementById("creationStatRows");
+  rowsEl.innerHTML = "";
+
+  function pointsUsed() {
+    return Object.values(stats).reduce((a, b) => a + b, 0);
+  }
+  function refreshRemaining() {
+    document.getElementById("pointsRemaining").textContent = budget - pointsUsed();
+  }
+
+  GameData.attributes.forEach((attr) => {
+    const row = document.createElement("div");
+    row.className = "stat-editor-row";
+    row.innerHTML = `
+      <span class="stat-name">${attr}</span>
+      <div class="stepper">
+        <button type="button" data-dir="-1" data-attr="${attr}">−</button>
+        <span class="val" id="val-${attr}">${stats[attr]}</span>
+        <button type="button" data-dir="1" data-attr="${attr}">+</button>
+      </div>
+    `;
+    rowsEl.appendChild(row);
+  });
+
+  rowsEl.querySelectorAll("button[data-attr]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const attr = btn.dataset.attr;
+      const dir = Number(btn.dataset.dir);
+      const next = stats[attr] + dir;
+      if (next < 0 || next > GameData.attributeCap) return;
+      if (dir > 0 && pointsUsed() + 1 > budget) return;
+      stats[attr] = next;
+      document.getElementById(`val-${attr}`).textContent = next;
+      refreshRemaining();
+    });
+  });
+  refreshRemaining();
+
+  const skipBtn = document.getElementById("skipCharacterBtn");
+  if (isDM) {
+    skipBtn.classList.remove("hidden");
+    skipBtn.onclick = async () => {
+      myCharacter.built = true;
+      myCharacter.skipped = true;
+      myCharacter = await DB.upsertCharacter(myCharacter);
+      Sync.emit("character:update", { character: myCharacter });
+      showAppView();
+    };
+  } else {
+    skipBtn.classList.add("hidden");
+  }
+
+  document.getElementById("saveCharacterBtn").onclick = async () => {
+    const name = document.getElementById("creationCharName").value.trim();
+    const msg = document.getElementById("creationMsg");
+    if (!name) {
+      msg.textContent = "Give your character a name first.";
+      return;
+    }
+    myCharacter.name = name;
+    myCharacter.stats = stats;
+    myCharacter.pointsSpent = pointsUsed();
+    myCharacter.built = true;
+    myCharacter = await DB.upsertCharacter(myCharacter);
+    Sync.emit("character:update", { character: myCharacter });
+    const message = await DB.addMessage({
+      roomId: room.id,
+      authorId: "system",
+      authorName: "System",
+      type: "system",
+      text: `${name} has joined the table.`,
+    });
+    Sync.emit("chat:new", { message });
+    showAppView();
+  };
+}
+
+/* ==================================================================
+ * Main app shell
+ * ================================================================== */
+
+function showAppView() {
+  document.getElementById("creationView").classList.add("hidden");
+  document.getElementById("appView").classList.remove("hidden");
+
+  document.getElementById("roomName").textContent = room.name;
+  document.getElementById("roomCode").textContent = room.code;
+  document.getElementById("charNameLabel").textContent = myCharacter.name;
+  const pill = document.getElementById("rolePill");
+  pill.textContent = isDM ? "Dice Master" : "Player";
+  pill.classList.toggle("dm-pill", isDM);
+
+  const grid = document.getElementById("roomGrid");
+  const leftSidebar = document.getElementById("leftSidebar");
+
+  if (isDM) {
+    grid.classList.remove("no-left");
+    if (myCharacter.built && !myCharacter.skipped) {
+      leftSidebar.classList.remove("hidden");
+      wireTabBar(document.getElementById("leftTabBar"), leftSidebar);
+      renderPlayerTabs("left", myCharacter);
+    } else {
+      leftSidebar.classList.add("hidden");
+      grid.classList.add("no-left");
+    }
+    DMTools.render(document.getElementById("rightTabBar"), document.getElementById("rightPanels"), room);
+  } else {
+    grid.classList.add("no-left");
+    leftSidebar.classList.add("hidden");
+    renderRightAsPlayer();
+  }
+
+  document.getElementById("dmTutorialBtn").classList.toggle("hidden", !isDM);
+
+  renderStoryFeed();
+  if (!composerWired) { wireComposer(); composerWired = true; }
+  renderRoster();
+  refreshComposerLock();
+}
+
+function wireTabBar(tabBar, sidebar) {
+  tabBar.querySelectorAll("button").forEach((btn) => {
+    btn.onclick = () => {
+      tabBar.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      sidebar.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+      sidebar.querySelector(`[data-panel="${btn.dataset.tab}"]`).classList.add("active");
+    };
+  });
+}
+
+/* ---- Right sidebar as a standard Player panel (Stats/Condition/Notes/Dice) ---- */
+
+function renderRightAsPlayer() {
+  const tabBar = document.getElementById("rightTabBar");
+  const panels = document.getElementById("rightPanels");
+  tabBar.innerHTML = `
+    <button data-tab="stats" class="active">Stats</button>
+    <button data-tab="condition">Condition</button>
+    <button data-tab="notes">DM Notes</button>
+    <button data-tab="dice">Dice</button>
+  `;
+  panels.innerHTML = `
+    <div class="tab-panel active" data-panel="stats" id="playerStatsPanel"></div>
+    <div class="tab-panel" data-panel="condition" id="playerConditionPanel"></div>
+    <div class="tab-panel" data-panel="notes" id="playerNotesPanel"></div>
+    <div class="tab-panel" data-panel="dice" id="playerDicePanel"></div>
+  `;
+  wireTabBar(tabBar, document.getElementById("rightSidebar"));
+  renderPlayerTabs("player", myCharacter);
+}
+
+/**
+ * Renders the four standard tab panels for a given character. `prefix`
+ * is "left" (DM's own character sidebar) or "player" (a normal player's
+ * only sidebar) — both use the exact same layout, per spec.
+ */
+async function renderPlayerTabs(prefix, character) {
+  renderStatsPanel(document.getElementById(`${prefix}StatsPanel`), character);
+  await Promise.all([
+    renderConditionPanel(document.getElementById(`${prefix}ConditionPanel`), character),
+    renderNotesPanel(document.getElementById(`${prefix}NotesPanel`)),
+    renderDicePanel(document.getElementById(`${prefix}DicePanel`), character),
+  ]);
+}
+
+function renderStatsPanel(container, character) {
+  if (!container) return;
+  container.innerHTML = "";
+  GameData.attributes.forEach((attr) => {
+    const val = character.stats[attr] || 0;
+    const row = document.createElement("div");
+    row.className = "stat-row";
+    row.innerHTML = `
+      <span class="stat-name">${attr}</span>
+      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${(val / GameData.attributeCap) * 100}%; background:${STAT_COLORS[attr]}"></div></div>
+      <span class="stat-val">${val}</span>
+    `;
+    container.appendChild(row);
+  });
+}
+
+async function renderConditionPanel(container, character) {
+  if (!container) return;
+  const hpPct = Math.max(0, Math.min(100, (character.hp.current / character.hp.max) * 100));
+  const skills = await DB.getCustomSkills(room.id);
+  const unlocked = skills.filter(
+    (s) => (character.stats[s.thresholdAttribute] || 0) >= s.thresholdValue
+  );
+
+  container.innerHTML = `
+    <div class="hp-block">
+      <div class="hp-numbers"><span>HP</span><span>${character.hp.current} / ${character.hp.max}</span></div>
+      <div class="hp-track"><div class="hp-fill" style="width:${hpPct}%"></div></div>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label>Status effects</label>
+      <div id="statusChips-${container.id}">
+        ${character.statusEffects.length ? character.statusEffects.map((s) => `<span class="status-chip">${escapeHtml(s)}</span>`).join("") : `<span style="color:var(--text-lo); font-size:12.5px;">None active</span>`}
+      </div>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label>Inventory</label>
+      ${character.inventory.length ? character.inventory.map((i) => `<div class="inventory-item"><span>${escapeHtml(i.name)}</span><span class="qty">×${i.qty}</span></div>`).join("") : `<p style="color:var(--text-lo); font-size:12.5px;">Empty.</p>`}
+    </div>
+    <div style="margin-bottom:20px;">
+      <label>Sword style</label>
+      ${character.swordStyle ? `<span class="status-chip">${escapeHtml(character.swordStyle)} — ${escapeHtml(character.swordMastery || "Beginner")}</span>` : `<p style="color:var(--text-lo); font-size:12.5px;">None assigned yet — ask your Dice Master.</p>`}
+    </div>
+    <div style="margin-bottom:20px;">
+      <label>Known spells</label>
+      ${(character.knownSpells || []).length ? character.knownSpells.map((s) => `<span class="status-chip">${escapeHtml(s.name)} <span style="color:var(--text-lo);">(${escapeHtml(s.element)}, ${escapeHtml(s.tier)})</span></span>`).join("") : `<p style="color:var(--text-lo); font-size:12.5px;">None granted yet.</p>`}
+    </div>
+    <div>
+      <label>Unlocked skills</label>
+      ${unlocked.length ? unlocked.map((s) => `
+        <div class="skill-card">
+          <div class="skill-head"><strong>${escapeHtml(s.name)}</strong><span class="skill-tag" style="background:var(--mana)">${s.thresholdAttribute} ${s.thresholdValue}+</span></div>
+          <p>${escapeHtml(s.description)}</p>
+        </div>`).join("") : `<p style="color:var(--text-lo); font-size:12.5px;">Raise your attributes to unlock skills the Dice Master has set thresholds for.</p>`}
+    </div>
+  `;
+}
+
+async function renderNotesPanel(container) {
+  if (!container) return;
+  const allNotes = await DB.getDMNotes(room.id);
+  const notes = allNotes.filter((n) => n.visibility === "public").sort((a, b) => b.createdAt - a.createdAt);
+  container.innerHTML = notes.length
+    ? notes.map((n) => `<div class="note-card">${escapeHtml(n.text)}<time>${new Date(n.createdAt).toLocaleString()}</time></div>`).join("")
+    : `<p class="empty-state">The Dice Master hasn't posted any notes yet.</p>`;
+}
+
+async function renderDicePanel(container, character) {
+  if (!container) return;
+  container.innerHTML = "";
+  const pending = await DB.getPendingDiceRequests(room.id, character.id);
+  if (pending.length) {
+    pending.forEach((req) => Dice.renderRequestCard(container, req, character));
+  } else {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No roll has been requested yet.";
+    container.appendChild(empty);
+  }
+
+  const allowed = canRoll();
+  const freeRow = document.createElement("div");
+  freeRow.className = "free-roll-row";
+  freeRow.innerHTML = `
+    <select id="freeRollSides-${container.id}" ${allowed ? "" : "disabled"}>
+      <option value="4">d4</option>
+      <option value="6">d6</option>
+      <option value="8">d8</option>
+      <option value="10">d10</option>
+      <option value="12">d12</option>
+      <option value="20" selected>d20</option>
+      <option value="100">d100</option>
+    </select>
+    <button class="btn" id="freeRollBtn-${container.id}" ${allowed ? "" : "disabled"}>Roll for fun</button>
+  `;
+  container.appendChild(freeRow);
+  if (!allowed && !isDM) {
+    const lockNote = document.createElement("p");
+    lockNote.className = "mini-note lock-note";
+    lockNote.textContent = "The Dice Master hasn't opened the dice to you right now — wait for your turn or a roll request.";
+    container.appendChild(lockNote);
+  }
+  document.getElementById(`freeRollBtn-${container.id}`).addEventListener("click", () => {
+    if (!canRoll()) return;
+    const sides = Number(document.getElementById(`freeRollSides-${container.id}`).value);
+    Dice.freeRoll(sides, room.id, character);
+  });
+}
+
+/* ==================================================================
+ * Story feed / chat
+ * ================================================================== */
+
+async function renderStoryFeed() {
+  const feed = document.getElementById("storyFeed");
+  feed.innerHTML = "";
+  const messages = await DB.getMessagesByRoom(room.id);
+  for (const message of messages) {
+    await appendStoryLine(message);
+  }
+  feed.scrollTop = feed.scrollHeight;
+}
+
+async function appendStoryLine(message) {
+  const feed = document.getElementById("storyFeed");
+  const line = document.createElement("div");
+  line.className = `story-line ${message.type}`;
+  if (message.type === "system") {
+    line.innerHTML = `<span class="body">${escapeHtml(message.text)}</span>`;
+  } else {
+    const authorChar = message.authorId !== "system" ? await DB.getCharacter(message.authorId) : null;
+    const nameClass = authorChar && authorChar.isDM ? "who dm-name" : "who";
+    line.innerHTML = `<span class="${nameClass}">${escapeHtml(message.authorName)}</span><span class="body">${escapeHtml(message.text)}</span>`;
+  }
+  feed.appendChild(line);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function wireComposer() {
+  document.getElementById("composerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!canSpeak()) return;
+    const input = document.getElementById("composerInput");
+    const text = input.value.trim();
+    if (!text) return;
+    const msg = await DB.addMessage({
+      roomId: room.id,
+      authorId: myCharacter.id,
+      authorName: myCharacter.name,
+      type: "chat",
+      text,
+    });
+    Sync.emit("chat:new", { message: msg });
+    input.value = "";
+  });
+
+  document.getElementById("leaveBtn").addEventListener("click", () => {
+    DB.clearSession();
+    showLobby();
+  });
+}
+
+/**
+ * Locks/unlocks the composer input+button based on canSpeak(). The DM
+ * is never locked out of their own table's chat.
+ */
+function refreshComposerLock() {
+  const input = document.getElementById("composerInput");
+  const form = document.getElementById("composerForm");
+  if (!input || !form) return;
+  const allowed = canSpeak();
+  input.disabled = !allowed;
+  form.querySelector("button[type=submit]").disabled = !allowed;
+  input.placeholder = allowed
+    ? "Say something to the table…"
+    : isMyTurn()
+      ? "Say something to the table…"
+      : "Wait for your turn, or for the Dice Master to open the floor…";
+}
+
+/* ==================================================================
+ * Table roster — everyone's name, DM click-to-set-turn
+ * ================================================================== */
+
+function wireRosterButton() {
+  const btn = document.getElementById("rosterBtn");
+  const dropdown = document.getElementById("rosterDropdown");
+  btn.addEventListener("click", async () => {
+    const willOpen = dropdown.classList.contains("hidden");
+    dropdown.classList.toggle("hidden");
+    if (willOpen) await renderRoster();
+  });
+  document.addEventListener("click", (e) => {
+    if (!dropdown.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+      dropdown.classList.add("hidden");
+    }
+  });
+}
+
+async function renderRoster() {
+  const dropdown = document.getElementById("rosterDropdown");
+  if (!dropdown) return;
+  const chars = await DB.getCharactersByRoom(room.id);
+  const rows = chars.filter((c) => c.built).map((c) => {
+    const onTurn = room.activeCharacterId === c.id;
+    return `
+      <button class="roster-row ${onTurn ? "on-turn" : ""}" data-cid="${c.id}" ${isDM ? "" : "disabled"}>
+        <span class="roster-dot ${onTurn ? "lit" : ""}"></span>
+        <span class="roster-name">${escapeHtml(c.name)}${c.isDM ? " (DM)" : ""}</span>
+      </button>`;
+  }).join("");
+
+  dropdown.innerHTML = `
+    <div class="roster-head">Table roster</div>
+    ${rows || `<p class="empty-state">No one has taken a seat yet.</p>`}
+    ${isDM ? `
+      <div class="roster-head roster-controls-head">Table controls</div>
+      <label class="roster-toggle-row">
+        <input type="checkbox" id="chatUnlockToggle" ${room.chatUnlocked ? "checked" : ""} />
+        Open chat to everyone
+      </label>
+      <label class="roster-toggle-row">
+        <input type="checkbox" id="rollUnlockToggle" ${room.rollUnlocked ? "checked" : ""} />
+        Open dice to everyone
+      </label>
+    ` : ""}
+  `;
+
+  if (isDM) {
+    dropdown.querySelectorAll(".roster-row[data-cid]").forEach((row) => {
+      row.addEventListener("click", async () => {
+        const cid = row.dataset.cid;
+        const next = room.activeCharacterId === cid ? null : cid;
+        room = await DB.setRoomTurn(room.id, next);
+        Sync.emit("turn:update", { activeCharacterId: next });
+        renderRoster();
+        refreshComposerLock();
+      });
+    });
+    document.getElementById("chatUnlockToggle").addEventListener("change", async (e) => {
+      room = await DB.setChatUnlocked(room.id, e.target.checked);
+      Sync.emit("chat:lock", { chatUnlocked: e.target.checked });
+      refreshComposerLock();
+    });
+    document.getElementById("rollUnlockToggle").addEventListener("change", async (e) => {
+      room = await DB.setRollUnlocked(room.id, e.target.checked);
+      Sync.emit("roll:lock", { rollUnlocked: e.target.checked });
+    });
+  }
+}
+
+/* ==================================================================
+ * Live updates from other tabs (DM tools, other players)
+ * ================================================================== */
+
+function wireSyncListeners() {
+  Sync.on("chat:new", ({ message }) => {
+    if (message.roomId !== room.id) return;
+    appendStoryLine(message);
+  });
+
+  Sync.on("character:update", ({ character }) => {
+    if (character.roomId !== room.id) return;
+    if (character.id === myCharacter.id) myCharacter = character;
+    // Refresh whichever panel(s) currently show this character.
+    if (character.id === myCharacter.id) {
+      const prefix = isDM ? "left" : "player";
+      renderPlayerTabs(prefix, character);
+    }
+    if (isDM) DMTools.onCharacterUpdate(character);
+  });
+
+  Sync.on("dice:request", ({ request }) => {
+    if (request.roomId !== room.id || request.targetCharacterId !== myCharacter.id) return;
+    const prefix = isDM ? "left" : "player";
+    const panel = document.getElementById(`${prefix}DicePanel`);
+    if (panel) renderDicePanel(panel, myCharacter);
+  });
+
+  Sync.on("dice:result", () => {
+    const prefix = isDM ? "left" : "player";
+    const panel = document.getElementById(`${prefix}DicePanel`);
+    if (panel) renderDicePanel(panel, myCharacter);
+  });
+
+  Sync.on("note:public", () => {
+    const prefix = isDM ? "left" : "player";
+    const panel = document.getElementById(`${prefix}NotesPanel`);
+    if (panel) renderNotesPanel(panel);
+  });
+
+  Sync.on("skill:new", () => {
+    const prefix = isDM ? "left" : "player";
+    const panel = document.getElementById(`${prefix}ConditionPanel`);
+    if (panel) renderConditionPanel(panel, myCharacter);
+    if (isDM && typeof DMTools !== "undefined" && DMTools.refreshSkillLib) DMTools.refreshSkillLib();
+  });
+
+  Sync.on("turn:update", ({ activeCharacterId }) => {
+    room.activeCharacterId = activeCharacterId;
+    refreshComposerLock();
+    renderRoster();
+    const prefix = isDM ? "left" : "player";
+    const dicePanel = document.getElementById(`${prefix}DicePanel`);
+    if (dicePanel) renderDicePanel(dicePanel, myCharacter);
+  });
+
+  Sync.on("chat:lock", ({ chatUnlocked }) => {
+    room.chatUnlocked = chatUnlocked;
+    refreshComposerLock();
+    renderRoster();
+  });
+
+  Sync.on("roll:lock", ({ rollUnlocked }) => {
+    room.rollUnlocked = rollUnlocked;
+    renderRoster();
+    const prefix = isDM ? "left" : "player";
+    const dicePanel = document.getElementById(`${prefix}DicePanel`);
+    if (dicePanel) renderDicePanel(dicePanel, myCharacter);
+  });
+}
+
+
+
+
+/* ================= dm-tools.js ================= */
+/**
+ * dm-tools.js — the Dice Master's right-side control panel: private
+ * notes, event triggers (status effects), live stat/HP edits, inventory
+ * management, forcing rolls, and defining custom skills with attribute
+ * thresholds. Every write here goes through DB then Sync.emit(...) so
+ * the affected player's screen updates immediately (see sync.js).
+ */
+
+const DMTools = (() => {
+  let roomRef;
+
+  const TUTORIAL_SECTIONS = [
+    {
+      title: "The basics: pick a target, then act",
+      body: `Almost every tab has a dropdown at the top ("Adjust a player", "Apply a status effect", etc). That dropdown is who your next action applies to. Pick the player first, then use the fields below it — nothing you do on these tabs affects anyone except whoever is currently selected in that tab's dropdown.`,
+    },
+    {
+      title: "Overview — see everything about a player at once",
+      body: `The first tab. Pick a player and you'll see their HP, all seven attributes, status effects, inventory, sword style + mastery, known spells, and any skills they've unlocked — all in one read-only card. Use this to quickly check where someone stands before deciding what to do to them. To actually change any of it, use the specific tab for that thing (see below).`,
+    },
+    {
+      title: "Notes — talk to yourself or the table",
+      body: `Write a note and choose Private (only you ever see it — good for planning ahead) or Public (posted to every player's "DM Notes" tab immediately). Good for foreshadowing, reminders, or an in-character whisper you want on record.`,
+    },
+    {
+      title: "Events — apply or remove status effects",
+      body: `Pick a player, type a status name (Burned, Stunned, Blessed — anything you want, it's free text), and hit Apply. It shows up as a chip on their Condition tab immediately and posts to the story feed. Click the × on a chip here to remove it.`,
+    },
+    {
+      title: "Stats & HP — adjust attributes and health live",
+      body: `Pick a player, then use the +/− steppers to change any of their seven attributes (capped at ${GameData.attributeCap} each), or type new HP current/max values directly. Hit "Save changes" to push it live — their stat bars and HP bar update instantly on their screen.`,
+    },
+    {
+      title: "Inventory — give or take items",
+      body: `Pick a player, type an item name and quantity, hit Add. Adding an item they already have increases the stack instead of duplicating it. Click Remove next to any item to take it away entirely.`,
+    },
+    {
+      title: "Classes — this is how you assign sword styles and spells",
+      body: `This is the tab your friend was missing. "Sword styles" and "spells" are reference material everywhere else in the app (Spellbook, Skill Lib) — they don't attach to anyone until you do it here.
+      <br><br><strong>Sword style:</strong> pick a player, pick one of the four styles and a mastery level (Beginner through God), hit "Set sword style." A player can only hold one active style at a time — picking a new one replaces the old.
+      <br><br><strong>Spells:</strong> pick an element and tier, pick the specific spell from the dropdown that fills in below, hit Grant. It's now permanently listed under that player's "known spells" — visible to you on Overview and to them on their own Condition tab. Click the × on a spell chip here to make them forget it.`,
+    },
+    {
+      title: "Skills — define attribute thresholds that auto-unlock",
+      body: `This is different from Classes. A "skill" here isn't granted to one player directly — instead you define a rule ("Stealth 8+ unlocks Wind Cutters") once, and it applies to the whole table automatically: any player whose Stealth reaches 8 sees it appear on their own Condition tab with no further action from you. Use this for abilities that should reward raising a stat, rather than a one-off item you hand to a specific person.`,
+    },
+    {
+      title: "Dice — force a roll",
+      body: `Pick a player, a die size, and an optional reason ("Stealth check"), hit "Send roll request." It appears on that player's Dice tab immediately; once they roll, the result posts to the story feed automatically. This works regardless of whose turn it is or whether chat/dice are locked — a DM request always gets through.`,
+    },
+    {
+      title: "Spells & Skill Lib — read-only reference",
+      body: `Spells lets you browse and filter the full spell list by element/tier/name. Skill Lib shows the intellectual skills, sword style descriptions, and the mastery ladder, plus the custom skills you've defined. Neither of these tabs changes anything about a player by itself — use Classes (for spells/sword style) or Skills (for thresholds) to actually apply them.`,
+    },
+    {
+      title: "The \"Table\" button — turns, chat, and dice locks",
+      body: `Up in the top bar, the "Table" button (next to your role pill) shows every player. Click a name to make it their turn — that unlocks the chat box and free dice roll just for them, shown with a green dot. Click the same name again to clear the turn for everyone. The two checkboxes below the roster ("Open chat to everyone" / "Open dice to everyone") bypass turns entirely if you want a free-for-all moment.`,
+    },
+  ];
+
+  function tutorialHtml() {
+    return TUTORIAL_SECTIONS.map((s) => `
+      <div class="tutorial-section">
+        <h4>${escapeHtml(s.title)}</h4>
+        <p>${s.body}</p>
+      </div>
+    `).join("");
+  }
+
+  function wireTutorial() {
+    const btn = document.getElementById("dmTutorialBtn");
+    const overlay = document.getElementById("tutorialModal");
+    const card = document.getElementById("tutorialModalCard");
+    if (!btn || !overlay || !card) return;
+
+    btn.classList.remove("hidden");
+    btn.onclick = () => {
+      card.innerHTML = `
+        <div class="modal-head">
+          <h3>Dice Master tutorial</h3>
+          <button class="btn btn-ghost" id="tutorialCloseBtn">✕</button>
+        </div>
+        <div class="modal-body">${tutorialHtml()}</div>
+      `;
+      overlay.classList.remove("hidden");
+      document.getElementById("tutorialCloseBtn").addEventListener("click", () => {
+        overlay.classList.add("hidden");
+      });
+    };
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) overlay.classList.add("hidden");
+    });
+  }
+
+  async function render(tabBar, panels, room) {
+    roomRef = room;
+    tabBar.innerHTML = `
+      <button data-tab="overview" class="active">Overview</button>
+      <button data-tab="notes">Notes</button>
+      <button data-tab="events">Events</button>
+      <button data-tab="stats">Stats & HP</button>
+      <button data-tab="inventory">Inventory</button>
+      <button data-tab="classes">Classes</button>
+      <button data-tab="skills">Skills</button>
+      <button data-tab="dice">Dice</button>
+      <button data-tab="spellbook">Spells</button>
+      <button data-tab="skilllib">Skill Lib</button>
+    `;
+    panels.innerHTML = `
+      <div class="tab-panel active" data-panel="overview" id="dmOverviewTab"></div>
+      <div class="tab-panel" data-panel="notes" id="dmNotesTab"></div>
+      <div class="tab-panel" data-panel="events" id="dmEventsTab"></div>
+      <div class="tab-panel" data-panel="stats" id="dmStatsTab"></div>
+      <div class="tab-panel" data-panel="inventory" id="dmInventoryTab"></div>
+      <div class="tab-panel" data-panel="classes" id="dmClassesTab"></div>
+      <div class="tab-panel" data-panel="skills" id="dmSkillsTab"></div>
+      <div class="tab-panel" data-panel="dice" id="dmDiceTab"></div>
+      <div class="tab-panel" data-panel="spellbook" id="dmSpellbookTab"></div>
+      <div class="tab-panel" data-panel="skilllib" id="dmSkillLibTab"></div>
+    `;
+    wireTabBar(tabBar, document.getElementById("rightSidebar"));
+
+    await Promise.all([
+      renderOverviewTab(),
+      renderNotesTab(),
+      renderEventsTab(),
+      renderStatsTab(),
+      renderInventoryTab(),
+      renderClassesTab(),
+      renderSkillsTab(),
+      renderDiceTab(),
+      renderSpellbookTab(),
+      renderSkillLibTab(),
+    ]);
+
+    wireTutorial();
+  }
+
+  function characters() {
+    return DB.getCharactersByRoom(roomRef.id);
+  }
+
+  async function targetSelectHtml(id) {
+    const opts = (await characters())
+      .map((c) => `<option value="${c.id}">${escapeHtml(c.name)}${c.isDM ? " (you)" : ""}</option>`)
+      .join("");
+    return `<select id="${id}">${opts || "<option disabled>No characters yet</option>"}</select>`;
+  }
+
+  function currentTarget(selectId) {
+    const id = document.getElementById(selectId).value;
+    return DB.getCharacter(id);
+  }
+
+  async function announce(text) {
+    const msg = await DB.addMessage({ roomId: roomRef.id, authorId: "system", authorName: "System", type: "system", text });
+    Sync.emit("chat:new", { message: msg });
+  }
+
+  async function pushCharacterUpdate(character) {
+    const saved = await DB.upsertCharacter(character);
+    Sync.emit("character:update", { character: saved });
+    return saved;
+  }
+
+  /* --------------------------------------------------------- Overview
+   * Read-only "everything about this player at a glance" card: HP,
+   * every stat, status effects, inventory, sword style/mastery, known
+   * spells, and any unlocked skills — the whole character sheet in one
+   * place instead of hunting across six tabs.
+   */
+  async function renderOverviewTab() {
+    const el = document.getElementById("dmOverviewTab");
+    el.innerHTML = `
+      <div class="dm-section">
+        <h3>Player at a glance</h3>
+        <div class="dm-target-picker">${await targetSelectHtml("overviewTarget")}</div>
+        <div id="overviewBody"></div>
+      </div>
+    `;
+    document.getElementById("overviewTarget").addEventListener("change", renderOverviewBody);
+    renderOverviewBody();
+  }
+
+  async function renderOverviewBody() {
+    const body = document.getElementById("overviewBody");
+    const target = await currentTarget("overviewTarget");
+    if (!target) return (body.innerHTML = `<p class="empty-state">No characters yet.</p>`);
+
+    const hpPct = Math.max(0, Math.min(100, (target.hp.current / target.hp.max) * 100));
+    const customSkills = await DB.getCustomSkills(roomRef.id);
+    const unlocked = customSkills.filter((s) => (target.stats[s.thresholdAttribute] || 0) >= s.thresholdValue);
+    const knownSpells = target.knownSpells || [];
+
+    body.innerHTML = `
+      <div class="overview-name">${escapeHtml(target.name)}${target.isDM ? " (you)" : ""}</div>
+
+      <div class="hp-block">
+        <div class="hp-numbers"><span>HP</span><span>${target.hp.current} / ${target.hp.max}</span></div>
+        <div class="hp-track"><div class="hp-fill" style="width:${hpPct}%"></div></div>
+      </div>
+
+      <label>Attributes</label>
+      ${GameData.attributes.map((attr) => {
+        const val = target.stats[attr] || 0;
+        return `<div class="stat-row">
+          <span class="stat-name">${attr}</span>
+          <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${(val / GameData.attributeCap) * 100}%; background:${STAT_COLORS[attr] || "var(--gold)"}"></div></div>
+          <span class="stat-val">${val}</span>
+        </div>`;
+      }).join("")}
+
+      <label style="margin-top:14px;">Status effects</label>
+      <div style="margin-bottom:16px;">
+        ${target.statusEffects.length ? target.statusEffects.map((s) => `<span class="status-chip">${escapeHtml(s)}</span>`).join("") : `<span style="color:var(--text-lo); font-size:12.5px;">None active</span>`}
+      </div>
+
+      <label>Inventory</label>
+      <div style="margin-bottom:16px;">
+        ${target.inventory.length ? target.inventory.map((i) => `<div class="inventory-item"><span>${escapeHtml(i.name)}</span><span class="qty">×${i.qty}</span></div>`).join("") : `<p style="color:var(--text-lo); font-size:12.5px; margin:0;">Empty.</p>`}
+      </div>
+
+      <label>Sword style</label>
+      <div style="margin-bottom:16px;">
+        ${target.swordStyle ? `<span class="status-chip">${escapeHtml(target.swordStyle)} — ${escapeHtml(target.swordMastery || "Beginner")}</span>` : `<span style="color:var(--text-lo); font-size:12.5px;">None assigned — set one on the Classes tab.</span>`}
+      </div>
+
+      <label>Known spells</label>
+      <div style="margin-bottom:16px;">
+        ${knownSpells.length ? knownSpells.map((s) => `<span class="status-chip">${escapeHtml(s.name)} <span style="color:var(--text-lo);">(${escapeHtml(s.element)}, ${escapeHtml(s.tier)})</span></span>`).join("") : `<span style="color:var(--text-lo); font-size:12.5px;">None granted — use the Classes tab.</span>`}
+      </div>
+
+      <label>Unlocked skills</label>
+      <div>
+        ${unlocked.length ? unlocked.map((s) => `
+          <div class="skill-card">
+            <div class="skill-head"><strong>${escapeHtml(s.name)}</strong><span class="skill-tag" style="background:var(--mana)">${s.thresholdAttribute} ${s.thresholdValue}+</span></div>
+            <p>${escapeHtml(s.description)}</p>
+          </div>`).join("") : `<p class="empty-state">None yet — either raise an attribute past a threshold, or define one on the Skills tab.</p>`}
+      </div>
+    `;
+  }
+
+  /* ---------------------------------------------------------- Notes */
+  async function renderNotesTab() {
+    const el = document.getElementById("dmNotesTab");
+    const allNotes = await DB.getDMNotes(roomRef.id);
+    const notes = allNotes.sort((a, b) => b.createdAt - a.createdAt);
+    el.innerHTML = `
+      <div class="dm-section">
+        <h3>Write a note</h3>
+        <textarea class="notes-box" id="dmNoteText" placeholder="Story progression, future plans, a whisper to the table…"></textarea>
+        <div class="dm-field-row" style="margin-top:8px;">
+          <select id="dmNoteVisibility">
+            <option value="private">Private (DM only)</option>
+            <option value="public">Public (visible to players)</option>
+          </select>
+          <button class="btn btn-primary" id="dmNoteSaveBtn">Save note</button>
+        </div>
+      </div>
+      <div class="dm-section">
+        <h3>Note log</h3>
+        ${notes.length ? notes.map((n) => `
+          <div class="note-card" style="border-left-color:${n.visibility === "public" ? "var(--mana)" : "var(--text-lo)"}">
+            <strong style="font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:${n.visibility === "public" ? "var(--mana)" : "var(--text-lo)"}">${n.visibility}</strong>
+            <div>${escapeHtml(n.text)}</div>
+            <time>${new Date(n.createdAt).toLocaleString()}</time>
+          </div>`).join("") : `<p class="empty-state">No notes yet.</p>`}
+      </div>
+    `;
+    document.getElementById("dmNoteSaveBtn").addEventListener("click", async () => {
+      const text = document.getElementById("dmNoteText").value.trim();
+      if (!text) return;
+      const visibility = document.getElementById("dmNoteVisibility").value;
+      const note = await DB.addDMNote({ roomId: roomRef.id, authorId: roomRef.dmUserId, text, visibility });
+      if (visibility === "public") Sync.emit("note:public", { note });
+      renderNotesTab();
+    });
+  }
+
+  /* --------------------------------------------------------- Events */
+  async function renderEventsTab() {
+    const el = document.getElementById("dmEventsTab");
+    el.innerHTML = `
+      <div class="dm-section">
+        <h3>Apply a status effect</h3>
+        <div class="dm-target-picker">${await targetSelectHtml("eventsTarget")}</div>
+        <div class="dm-field-row">
+          <input id="eventEffectName" placeholder="e.g. Burned, Stunned, Blessed" />
+          <button class="btn btn-primary" id="eventApplyBtn">Apply</button>
+        </div>
+        <div id="eventsCurrentStatuses" style="margin-top:12px;"></div>
+      </div>
+    `;
+    document.getElementById("eventsTarget").addEventListener("change", renderEventCurrentStatuses);
+    renderEventCurrentStatuses();
+
+    document.getElementById("eventApplyBtn").addEventListener("click", async () => {
+      const name = document.getElementById("eventEffectName").value.trim();
+      if (!name) return;
+      const target = await currentTarget("eventsTarget");
+      target.statusEffects.push(name);
+      await pushCharacterUpdate(target);
+      announce(`${target.name} is now ${name}.`);
+      document.getElementById("eventEffectName").value = "";
+      renderEventCurrentStatuses();
+    });
+  }
+
+  async function renderEventCurrentStatuses() {
+    const box = document.getElementById("eventsCurrentStatuses");
+    const target = await currentTarget("eventsTarget");
+    if (!target) return (box.innerHTML = "");
+    box.innerHTML = `<label>Active on ${escapeHtml(target.name)}</label>` +
+      (target.statusEffects.length
+        ? target.statusEffects.map((s, i) => `<span class="status-chip">${escapeHtml(s)} <button data-i="${i}">×</button></span>`).join("")
+        : `<span style="color:var(--text-lo); font-size:12.5px;">None</span>`);
+    box.querySelectorAll("button[data-i]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const i = Number(btn.dataset.i);
+        const removed = target.statusEffects.splice(i, 1)[0];
+        await pushCharacterUpdate(target);
+        announce(`${target.name} is no longer ${removed}.`);
+        renderEventCurrentStatuses();
+      });
+    });
+  }
+
+  /* ----------------------------------------------------- Stats & HP */
+  async function renderStatsTab() {
+    const el = document.getElementById("dmStatsTab");
+    el.innerHTML = `
+      <div class="dm-section">
+        <h3>Adjust a player</h3>
+        <div class="dm-target-picker">${await targetSelectHtml("statsTarget")}</div>
+        <div id="statsEditorBody"></div>
+      </div>
+    `;
+    document.getElementById("statsTarget").addEventListener("change", renderStatsEditorBody);
+    renderStatsEditorBody();
+  }
+
+  async function renderStatsEditorBody() {
+    const body = document.getElementById("statsEditorBody");
+    const target = await currentTarget("statsTarget");
+    if (!target) return (body.innerHTML = "");
+    body.innerHTML = `
+      ${GameData.attributes.map((attr) => `
+        <div class="stat-editor-row">
+          <span class="stat-name">${attr}</span>
+          <div class="stepper">
+            <button type="button" data-attr="${attr}" data-dir="-1">−</button>
+            <span class="val" id="dmval-${attr}">${target.stats[attr]}</span>
+            <button type="button" data-attr="${attr}" data-dir="1">+</button>
+          </div>
+        </div>`).join("")}
+      <div class="dm-field-row" style="margin-top:14px;">
+        <div>
+          <label>HP current</label>
+          <input type="number" id="dmHpCurrent" value="${target.hp.current}" min="0" max="${target.hp.max}" />
+        </div>
+        <div>
+          <label>HP max</label>
+          <input type="number" id="dmHpMax" value="${target.hp.max}" min="1" />
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="dmStatsSaveBtn" style="margin-top:12px;">Save changes</button>
+    `;
+    body.querySelectorAll("button[data-attr]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const attr = btn.dataset.attr;
+        const dir = Number(btn.dataset.dir);
+        const next = target.stats[attr] + dir;
+        if (next < 0 || next > GameData.attributeCap) return;
+        target.stats[attr] = next;
+        document.getElementById(`dmval-${attr}`).textContent = next;
+      });
+    });
+    document.getElementById("dmStatsSaveBtn").addEventListener("click", async () => {
+      target.hp.max = Math.max(1, Number(document.getElementById("dmHpMax").value) || target.hp.max);
+      target.hp.current = Math.min(target.hp.max, Math.max(0, Number(document.getElementById("dmHpCurrent").value) || 0));
+      await pushCharacterUpdate(target);
+      announce(`${target.name}'s stats were updated by the Dice Master.`);
+    });
+  }
+
+  /* ------------------------------------------------------- Inventory */
+  async function renderInventoryTab() {
+    const el = document.getElementById("dmInventoryTab");
+    el.innerHTML = `
+      <div class="dm-section">
+        <h3>Manage inventory</h3>
+        <div class="dm-target-picker">${await targetSelectHtml("invTarget")}</div>
+        <div class="dm-field-row">
+          <input id="invItemName" placeholder="Item name" />
+          <input id="invItemQty" type="number" value="1" min="1" style="max-width:70px;" />
+          <button class="btn btn-primary" id="invAddBtn">Add</button>
+        </div>
+        <div id="invList" style="margin-top:12px;"></div>
+      </div>
+    `;
+    document.getElementById("invTarget").addEventListener("change", renderInvList);
+    renderInvList();
+
+    document.getElementById("invAddBtn").addEventListener("click", async () => {
+      const name = document.getElementById("invItemName").value.trim();
+      const qty = Math.max(1, Number(document.getElementById("invItemQty").value) || 1);
+      if (!name) return;
+      const target = await currentTarget("invTarget");
+      const existing = target.inventory.find((i) => i.name.toLowerCase() === name.toLowerCase());
+      if (existing) existing.qty += qty;
+      else target.inventory.push({ name, qty });
+      await pushCharacterUpdate(target);
+      announce(`${target.name} received ${qty}× ${name}.`);
+      document.getElementById("invItemName").value = "";
+      renderInvList();
+    });
+  }
+
+  async function renderInvList() {
+    const box = document.getElementById("invList");
+    const target = await currentTarget("invTarget");
+    if (!target) return (box.innerHTML = "");
+    box.innerHTML = target.inventory.length
+      ? target.inventory.map((i, idx) => `
+        <div class="inventory-item">
+          <span>${escapeHtml(i.name)} <span class="qty">×${i.qty}</span></span>
+          <button class="btn btn-ghost" data-idx="${idx}" style="padding:2px 8px;">Remove</button>
+        </div>`).join("")
+      : `<p class="empty-state">No items yet.</p>`;
+    box.querySelectorAll("button[data-idx]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const removed = target.inventory.splice(Number(btn.dataset.idx), 1)[0];
+        await pushCharacterUpdate(target);
+        announce(`${removed.name} was removed from ${target.name}'s inventory.`);
+        renderInvList();
+      });
+    });
+  }
+
+  /* ------------------------------------------------------------ Classes
+   * This is where sword styles and spells actually get attached to a
+   * player — the Spellbook and Skill Lib tabs are reference-only, this
+   * tab is the "apply it to someone" step.
+   */
+  async function renderClassesTab() {
+    const el = document.getElementById("dmClassesTab");
+    el.innerHTML = `
+      <div class="dm-section">
+        <h3>Assign a sword style</h3>
+        <div class="dm-target-picker">${await targetSelectHtml("classesTarget")}</div>
+        <div class="dm-field-row">
+          <select id="classSwordStyle">
+            <option value="">— none —</option>
+            ${GameData.swordStyles.map((s) => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join("")}
+          </select>
+          <select id="classSwordMastery">
+            ${GameData.swordMasteryLevels.map((m) => `<option value="${m}">${m}</option>`).join("")}
+          </select>
+        </div>
+        <button class="btn btn-primary btn-block" id="classSwordSaveBtn" style="margin-top:8px;">Set sword style</button>
+        <p class="mini-note">This replaces whatever style/mastery the player currently has — it's their one active style, per the mastery ladder in the Skill Lib tab.</p>
+        <div id="classCurrentStyle" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="dm-section">
+        <h3>Grant a spell</h3>
+        <div class="dm-field-row">
+          <select id="classSpellElement">
+            ${Object.keys(GameData.magic).map((k) => `<option value="${k}">${GameData.magic[k].label}</option>`).join("")}
+          </select>
+          <select id="classSpellTier">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+            <option value="unique">Unique</option>
+            <option value="ultimate">Ultimate</option>
+          </select>
+        </div>
+        <div class="dm-field-row">
+          <select id="classSpellName"></select>
+          <button class="btn btn-primary" id="classSpellGrantBtn">Grant</button>
+        </div>
+        <p class="mini-note">Browse full descriptions on the Spells tab first if you're not sure which one fits — this just attaches the spell you pick to the selected player.</p>
+        <label style="margin-top:14px;">Spells this player already knows</label>
+        <div id="classKnownSpells"></div>
+      </div>
+    `;
+
+    function refreshSpellNameOptions() {
+      const element = document.getElementById("classSpellElement").value;
+      const tier = document.getElementById("classSpellTier").value;
+      const spells = (GameData.magic[element] && GameData.magic[element].tiers[tier]) || [];
+      const nameSelect = document.getElementById("classSpellName");
+      nameSelect.innerHTML = spells.length
+        ? spells.map((s) => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join("")
+        : `<option disabled>No spells at this tier</option>`;
+    }
+    document.getElementById("classSpellElement").addEventListener("change", refreshSpellNameOptions);
+    document.getElementById("classSpellTier").addEventListener("change", refreshSpellNameOptions);
+    refreshSpellNameOptions();
+
+    document.getElementById("classesTarget").addEventListener("change", renderClassesBody);
+    renderClassesBody();
+
+    document.getElementById("classSwordSaveBtn").addEventListener("click", async () => {
+      const target = await currentTarget("classesTarget");
+      const style = document.getElementById("classSwordStyle").value;
+      const mastery = document.getElementById("classSwordMastery").value;
+      target.swordStyle = style || null;
+      target.swordMastery = style ? mastery : null;
+      await pushCharacterUpdate(target);
+      announce(style
+        ? `${target.name} was set to ${style} (${mastery}).`
+        : `${target.name}'s sword style was cleared.`);
+      renderClassesBody();
+    });
+
+    document.getElementById("classSpellGrantBtn").addEventListener("click", async () => {
+      const target = await currentTarget("classesTarget");
+      const element = document.getElementById("classSpellElement").value;
+      const tier = document.getElementById("classSpellTier").value;
+      const name = document.getElementById("classSpellName").value;
+      if (!name) return;
+      target.knownSpells = target.knownSpells || [];
+      if (target.knownSpells.some((s) => s.name === name)) return;
+      target.knownSpells.push({ name, element, tier });
+      await pushCharacterUpdate(target);
+      announce(`${target.name} learned ${name}.`);
+      renderClassesBody();
+    });
+  }
+
+  async function renderClassesBody() {
+    const target = await currentTarget("classesTarget");
+    const styleBox = document.getElementById("classCurrentStyle");
+    const knownBox = document.getElementById("classKnownSpells");
+    if (!target) {
+      styleBox.innerHTML = "";
+      knownBox.innerHTML = "";
+      return;
+    }
+    document.getElementById("classSwordStyle").value = target.swordStyle || "";
+    document.getElementById("classSwordMastery").value = target.swordMastery || "Beginner";
+    styleBox.innerHTML = target.swordStyle
+      ? `<label>Current style</label><span class="status-chip">${escapeHtml(target.swordStyle)} — ${escapeHtml(target.swordMastery || "Beginner")}</span>`
+      : `<label>Current style</label><span style="color:var(--text-lo); font-size:12.5px;">None assigned yet.</span>`;
+
+    const known = target.knownSpells || [];
+    knownBox.innerHTML = known.length
+      ? known.map((s, idx) => `<span class="status-chip">${escapeHtml(s.name)} <button data-idx="${idx}">×</button></span>`).join("")
+      : `<span style="color:var(--text-lo); font-size:12.5px;">None granted yet.</span>`;
+    knownBox.querySelectorAll("button[data-idx]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const removed = target.knownSpells.splice(Number(btn.dataset.idx), 1)[0];
+        await pushCharacterUpdate(target);
+        announce(`${target.name} forgot ${removed.name}.`);
+        renderClassesBody();
+      });
+    });
+  }
+
+  /* ------------------------------------------------------------ Dice */
+  async function renderDiceTab() {
+    const el = document.getElementById("dmDiceTab");
+    el.innerHTML = `
+      <div class="dm-section">
+        <h3>Force a roll</h3>
+        <div class="dm-target-picker">${await targetSelectHtml("diceTarget")}</div>
+        <div class="dm-field-row">
+          <select id="diceSides">
+            <option value="4">d4</option><option value="6">d6</option><option value="8">d8</option>
+            <option value="10">d10</option><option value="12">d12</option>
+            <option value="20" selected>d20</option><option value="100">d100</option>
+          </select>
+          <input id="diceLabel" placeholder="Reason (optional) — e.g. Stealth check" />
+        </div>
+        <button class="btn btn-primary btn-block" id="diceRequestBtn" style="margin-top:10px;">Send roll request</button>
+        <p class="mini-note">The die appears on that player's Dice tab immediately, and the result posts to the story feed once they roll.</p>
+      </div>
+    `;
+    document.getElementById("diceRequestBtn").addEventListener("click", async () => {
+      const target = await currentTarget("diceTarget");
+      const sides = Number(document.getElementById("diceSides").value);
+      const label = document.getElementById("diceLabel").value.trim();
+      const request = await DB.createDiceRequest({ roomId: roomRef.id, targetCharacterId: target.id, requestedBy: roomRef.dmUserId, sides, label });
+      Sync.emit("dice:request", { request, characterId: target.id });
+      announce(`The Dice Master requested a d${sides} roll from ${target.name}${label ? ` (${label})` : ""}.`);
+    });
+  }
+
+  /* ---------------------------------------------------------- Skills */
+  async function renderSkillsTab() {
+    const el = document.getElementById("dmSkillsTab");
+    const allSkills = await DB.getCustomSkills(roomRef.id);
+    const skills = allSkills.sort((a, b) => b.createdAt - a.createdAt);
+    el.innerHTML = `
+      <div class="dm-section">
+        <h3>Create a skill / threshold</h3>
+        <input id="skillName" placeholder="Skill or spell name" style="margin-bottom:8px;" />
+        <textarea class="notes-box" id="skillDesc" placeholder="What it does" style="min-height:60px; margin-bottom:8px;"></textarea>
+        <div class="dm-field-row">
+          <select id="skillAttr">${GameData.attributes.map((a) => `<option value="${a}">${a}</option>`).join("")}</select>
+          <input id="skillThreshold" type="number" min="0" max="${GameData.attributeCap}" value="5" />
+        </div>
+        <button class="btn btn-primary btn-block" id="skillSaveBtn" style="margin-top:10px;">Add skill</button>
+        <p class="mini-note">Any player whose attribute meets the threshold sees this skill unlock automatically on their Condition tab.</p>
+      </div>
+      <div class="dm-section">
+        <h3>Reference library</h3>
+        <p class="mini-note">The full Quevela spell list, items, sword styles, and lore are seeded from DM_info.pdf — browse them anytime with <code>GameData</code> in the console, or extend this tab to surface them in the UI.</p>
+      </div>
+      <div class="dm-section">
+        <h3>Custom skills so far</h3>
+        ${skills.length ? skills.map((s) => `
+          <div class="skill-card">
+            <div class="skill-head"><strong>${escapeHtml(s.name)}</strong><span class="skill-tag" style="background:var(--mana)">${s.thresholdAttribute} ${s.thresholdValue}+</span></div>
+            <p>${escapeHtml(s.description)}</p>
+          </div>`).join("") : `<p class="empty-state">None yet.</p>`}
+      </div>
+    `;
+    document.getElementById("skillSaveBtn").addEventListener("click", async () => {
+      const name = document.getElementById("skillName").value.trim();
+      const description = document.getElementById("skillDesc").value.trim();
+      const thresholdAttribute = document.getElementById("skillAttr").value;
+      const thresholdValue = document.getElementById("skillThreshold").value;
+      if (!name) return;
+      const skill = await DB.addCustomSkill({ roomId: roomRef.id, name, description, thresholdAttribute, thresholdValue });
+      Sync.emit("skill:new", { skill });
+      renderSkillsTab();
+    });
+  }
+
+  /* ------------------------------------------------------ Spellbook
+   * DM-only reference browser over GameData.magic — the full Fire /
+   * Water / Wind / Earth / Intellectual spell library seeded from
+   * DM_info.pdf, filterable by element and tier so the DM can look
+   * something up mid-session without leaving the sidebar.
+   */
+  async function renderSpellbookTab() {
+    const el = document.getElementById("dmSpellbookTab");
+    const elements = Object.keys(GameData.magic);
+    el.innerHTML = `
+      <div class="dm-section">
+        <h3>Spellbook</h3>
+        <div class="dm-field-row">
+          <select id="spellElementFilter">
+            <option value="all">All elements</option>
+            ${elements.map((k) => `<option value="${k}">${GameData.magic[k].label}</option>`).join("")}
+          </select>
+          <select id="spellTierFilter">
+            <option value="all">All tiers</option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+            <option value="unique">Unique</option>
+            <option value="ultimate">Ultimate</option>
+          </select>
+        </div>
+        <input id="spellSearch" placeholder="Search spell names…" style="margin-bottom:8px;" />
+        <div id="spellList"></div>
+      </div>
+    `;
+    document.getElementById("spellElementFilter").addEventListener("change", renderSpellList);
+    document.getElementById("spellTierFilter").addEventListener("change", renderSpellList);
+    document.getElementById("spellSearch").addEventListener("input", renderSpellList);
+    renderSpellList();
+  }
+
+  function renderSpellList() {
+    const box = document.getElementById("spellList");
+    if (!box) return;
+    const elFilter = document.getElementById("spellElementFilter").value;
+    const tierFilter = document.getElementById("spellTierFilter").value;
+    const search = document.getElementById("spellSearch").value.trim().toLowerCase();
+
+    const elementKeys = elFilter === "all" ? Object.keys(GameData.magic) : [elFilter];
+    const tierKeys = tierFilter === "all" ? ["beginner", "intermediate", "advanced", "unique", "ultimate"] : [tierFilter];
+
+    let cards = "";
+    elementKeys.forEach((ek) => {
+      const element = GameData.magic[ek];
+      if (!element) return;
+      tierKeys.forEach((tk) => {
+        const spells = element.tiers[tk] || [];
+        spells.forEach((s) => {
+          if (search && !s.name.toLowerCase().includes(search)) return;
+          cards += `
+            <div class="skill-card">
+              <div class="skill-head">
+                <strong>${escapeHtml(s.name)}</strong>
+                <span class="skill-tag" style="background:var(--${ek})">${element.label} · ${tk}${s.subCategory ? " · sub" : ""}</span>
+              </div>
+              <p>${escapeHtml(s.desc)}</p>
+            </div>`;
+        });
+      });
+    });
+    box.innerHTML = cards || `<p class="empty-state">No spells match that filter.</p>`;
+  }
+
+  /* ------------------------------------------------------ Skill Library
+   * DM-only reference browser over the static intellectual skills and
+   * sword styles from GameData, plus the room's live custom-skill list
+   * (same data already shown on the Skills tab, surfaced here too for
+   * quick lookup without switching tabs mid-scene).
+   */
+  async function renderSkillLibTab() {
+    const el = document.getElementById("dmSkillLibTab");
+    const allSkills = await DB.getCustomSkills(roomRef.id);
+    const custom = allSkills.sort((a, b) => b.createdAt - a.createdAt);
+
+    el.innerHTML = `
+      <div class="dm-section">
+        <h3>Intellectual skills</h3>
+        ${GameData.intellectualSkills.map((s) => `
+          <div class="skill-card">
+            <div class="skill-head"><strong>${escapeHtml(s.name)}</strong></div>
+            <p>${escapeHtml(s.desc)}</p>
+          </div>`).join("")}
+      </div>
+      <div class="dm-section">
+        <h3>Sword styles</h3>
+        ${GameData.swordStyles.map((s) => `
+          <div class="skill-card">
+            <div class="skill-head"><strong>${escapeHtml(s.name)}</strong><span class="skill-tag" style="background:var(--fire)">Sword</span></div>
+            <p>${escapeHtml(s.desc)}</p>
+            <p class="mini-note" style="margin-top:8px;">${escapeHtml(s.origin)}</p>
+          </div>`).join("")}
+        <p class="mini-note">Mastery ladder: ${GameData.swordMasteryLevels.join(" → ")}</p>
+      </div>
+      <div class="dm-section">
+        <h3>Room's custom skills / thresholds</h3>
+        ${custom.length ? custom.map((s) => `
+          <div class="skill-card">
+            <div class="skill-head"><strong>${escapeHtml(s.name)}</strong><span class="skill-tag" style="background:var(--mana)">${s.thresholdAttribute} ${s.thresholdValue}+</span></div>
+            <p>${escapeHtml(s.description)}</p>
+          </div>`).join("") : `<p class="empty-state">None defined yet — add some on the Skills tab.</p>`}
+      </div>
+    `;
+  }
+
+  async function onCharacterUpdate(character) {
+    // Refresh every target-picker's option list so a newly-built character
+    // (or a name change) shows up immediately, without losing whatever the
+    // DM currently has selected.
+    const optionsHtml = (await characters())
+      .map((c) => `<option value="${c.id}">${escapeHtml(c.name)}${c.isDM ? " (you)" : ""}</option>`)
+      .join("");
+
+    ["eventsTarget", "statsTarget", "invTarget", "diceTarget", "overviewTarget", "classesTarget"].forEach((id) => {
+      const select = document.getElementById(id);
+      if (!select) return;
+      const previousValue = select.value;
+      select.innerHTML = optionsHtml || `<option disabled>No characters yet</option>`;
+      if ([...select.options].some((o) => o.value === previousValue)) {
+        select.value = previousValue;
+      }
+      // If this select was (or now is) showing the character that just
+      // changed, refresh the panel body underneath it too.
+      if (select.value === character.id) {
+        if (id === "eventsTarget") renderEventCurrentStatuses();
+        if (id === "statsTarget") renderStatsEditorBody();
+        if (id === "invTarget") renderInvList();
+        if (id === "overviewTarget") renderOverviewBody();
+        if (id === "classesTarget") renderClassesBody();
+      }
+    });
+  }
+
+  return { render, onCharacterUpdate, refreshSkillLib: renderSkillLibTab };
+})();
+
+// wireTabBar() is defined once in room.js and reused here.
+
+
+/* ==================================================================
+ * Startup — resume an existing session in this tab, else show the lobby
+ * ================================================================== */
+async function startApp() {
+  if (DB.getSession()) {
+    await enterRoom();
+  } else {
+    showLobby();
+  }
+}
+startApp();
+
+</script>
+</body>
+</html>
