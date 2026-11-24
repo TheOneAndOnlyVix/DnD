@@ -39,6 +39,10 @@
   --water: #2c86c9;
   --wind: #4fae7c;
   --earth: #a97a3f;
+  --intellectual: #c26be0;
+  --physical: #d9a441;
+  --custom: #7fb0b8;
+  --right-w: 320px;
 
   --danger: #c8302c;
   --success: #3f9e5c;
@@ -364,10 +368,10 @@ label {
 
 .room-grid {
   display: grid;
-  grid-template-columns: 300px 1fr 320px;
+  grid-template-columns: 300px 1fr var(--right-w);
   min-height: 0;
 }
-.room-grid.no-left { grid-template-columns: 1fr 320px; }
+.room-grid.no-left { grid-template-columns: 1fr var(--right-w); }
 
 .sidebar {
   background: var(--ink-panel);
@@ -737,6 +741,72 @@ button:disabled, input:disabled, select:disabled, textarea:disabled {
 *::-webkit-scrollbar-thumb { background: var(--ink-line); border-radius: 5px; }
 *::-webkit-scrollbar-thumb:hover { background: var(--text-lo); }
 
+/* ---- v2 additions ---- */
+.story-column { min-width: 0; }
+.sidebar.right { position: relative; }
+.panel-resizer { position: absolute; left: -4px; top: 0; bottom: 0; width: 8px; cursor: col-resize; z-index: 20; }
+.panel-resizer:hover, .panel-resizer.dragging { background: rgba(201,162,75,0.35); }
+body.resizing { user-select: none; cursor: col-resize; }
+
+.toast-host { position: fixed; top: 16px; right: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 200; pointer-events: none; }
+.toast {
+  pointer-events: auto; width: 300px; cursor: pointer;
+  background: linear-gradient(180deg, #1b1315, #120c0d);
+  border: 1px solid var(--gold); border-left: 4px solid var(--blood-bright);
+  border-radius: var(--radius-ui); padding: 10px 12px;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.55);
+  animation: toastIn 180ms ease-out;
+}
+.toast strong { display: block; font-family: var(--font-display); font-size: 13px; color: var(--gold-bright); margin-bottom: 4px; }
+.toast span { display: block; font-size: 12.5px; line-height: 1.4; max-height: 3.9em; overflow: hidden; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+.tab-bar button.has-update { color: var(--gold-bright); }
+.tab-bar button.has-update::after {
+  content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 6px;
+  border-radius: 50%; background: var(--blood-bright); box-shadow: 0 0 6px var(--blood-bright);
+}
+
+.typing-indicator { min-height: 24px; padding: 4px 20px 0; font-size: 12.5px; font-style: italic; color: var(--text-lo); background: var(--ink-panel); border-top: 1px solid var(--ink-line); }
+
+.pending-roll {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 8px 10px; margin-bottom: 8px; font-size: 13px;
+  border: 1px solid var(--ink-line); border-radius: var(--radius-ui); background: var(--ink-panel-raised);
+}
+.pending-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.pending-actions .btn { padding: 4px 10px; font-size: 12px; }
+
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip { border: 1px solid var(--ink-line); background: transparent; color: var(--text-lo); padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.chip.active { color: #0e0c1c; background: var(--chip-color, var(--gold)); border-color: var(--chip-color, var(--gold)); }
+.spell-filters { display: flex; gap: 8px; margin-bottom: 8px; }
+.spell-filters > * { flex: 1; min-width: 0; }
+.magic-core { border: 1px solid var(--ink-line); border-radius: var(--radius-ui); padding: 8px 12px; margin-bottom: 12px; background: var(--ink-panel-raised); font-size: 12.5px; line-height: 1.5; color: var(--text-lo); }
+.magic-core summary { cursor: pointer; color: var(--gold-bright); font-weight: 600; font-family: var(--font-display); }
+.magic-core p { margin: 8px 0 0; }
+.element-blurb { font-size: 12.5px; color: var(--text-lo); margin-bottom: 10px; line-height: 1.5; }
+.skill-card.known { border-color: var(--success); }
+.known-badge { font-size: 10.5px; font-weight: 700; color: var(--success); margin-left: 6px; }
+
+.sheet-head { border: 1px solid var(--gold-dim); border-radius: var(--radius-ui); padding: 10px 12px; margin-bottom: 16px; background: rgba(201,162,75,0.05); font-size: 13px; line-height: 1.6; }
+.sheet-head strong { color: var(--gold-bright); }
+.sheet-sub { font-size: 12.5px; color: var(--text-lo); margin: -8px 0 14px; }
+.group-title { margin-top: 16px; }
+
+.creation-shell { align-items: flex-start; }
+.creation-card { max-width: 680px; }
+.height-roller { border: 1px dashed var(--gold-dim); padding: 12px; margin: 14px 0; border-radius: var(--radius-ui); }
+.height-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.die-face.small { width: 52px; height: 52px; font-size: 20px; border-radius: 10px; margin: 0; flex-shrink: 0; }
+.height-value { font-family: var(--font-display); font-size: 22px; color: var(--gold-bright); }
+.stat-limit { font-size: 11px; color: var(--text-lo); }
+.stat-editor-row .stat-name, .stat-row .stat-name { width: 96px; }
+.grant-preview { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--ink-line); border-radius: var(--radius-ui); font-size: 12.5px; color: var(--text-lo); }
+.grant-preview .status-chip { font-size: 11.5px; padding: 3px 8px; }
+
+@media (max-width: 980px) { .panel-resizer { display: none; } }
+
 .hidden { display: none !important; }
 
 @media (max-width: 980px) {
@@ -836,7 +906,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled {
         </div>
         <div>
           <label for="createBudget">Starting attribute points (for every player)</label>
-          <input id="createBudget" type="number" min="1" max="70" value="20" />
+          <input id="createBudget" type="number" min="1" max="140" value="70" />
         </div>
         <p class="form-msg" id="createMsg"></p>
         <button class="btn btn-primary btn-block" type="submit">Create room — become Dice Master</button>
@@ -855,18 +925,42 @@ button:disabled, input:disabled, select:disabled, textarea:disabled {
 <div id="creationView" class="creation-shell hidden">
   <div class="creation-card">
     <h2>Build your character</h2>
-    <p id="creationBudgetLine">Distribute your points across the seven attributes. No attribute may exceed 10.</p>
+    <p id="creationBudgetLine">Distribute your points across the seven attributes.</p>
 
     <div>
       <label for="creationCharName">Character name</label>
       <input id="creationCharName" style="margin-bottom:18px;" />
     </div>
 
-    <div class="points-remaining">Points remaining: <strong id="pointsRemaining">20</strong></div>
+    <div class="dm-field-row">
+      <div>
+        <label for="creationRace">Race</label>
+        <select id="creationRace"></select>
+      </div>
+      <div id="creationSubraceWrap" class="hidden">
+        <label for="creationSubrace">Demi-Human type</label>
+        <select id="creationSubrace"></select>
+      </div>
+    </div>
+    <p class="mini-note" id="creationRaceNote"></p>
 
+    <div class="height-roller">
+      <label>Height (rolled on a d100 — one roll plus 3 re-rolls)</label>
+      <div class="height-row">
+        <div class="die-face small" id="creationDie">?</div>
+        <div>
+          <div class="height-value" id="creationHeight">Not rolled yet</div>
+          <div class="stat-limit" id="creationHeightRange"></div>
+        </div>
+      </div>
+      <button class="btn btn-block" id="creationRollBtn" type="button">Roll for height</button>
+    </div>
+
+    <div class="points-remaining">Points remaining: <strong id="pointsRemaining">70</strong></div>
     <div id="creationStatRows"></div>
+    <div class="grant-preview" id="creationGrants"></div>
 
-    <p class="form-msg error" id="creationMsg"></p>
+    <p class="form-msg error" id="creationMsg" style="margin-top:12px;"></p>
     <button class="btn btn-primary btn-block" id="saveCharacterBtn" style="margin-top:10px;">Enter the table</button>
     <button class="btn btn-ghost btn-block hidden" id="skipCharacterBtn" style="margin-top:8px;">Skip — I'll just Dice Master, no character</button>
   </div>
@@ -903,11 +997,15 @@ button:disabled, input:disabled, select:disabled, textarea:disabled {
       <div class="tab-bar" id="leftTabBar">
         <button data-tab="stats" class="active">Stats</button>
         <button data-tab="condition">Condition</button>
+        <button data-tab="skills">Skills</button>
+        <button data-tab="spells">Spells</button>
         <button data-tab="notes">DM Notes</button>
         <button data-tab="dice">Dice</button>
       </div>
       <div class="tab-panel active" data-panel="stats" id="leftStatsPanel"></div>
       <div class="tab-panel" data-panel="condition" id="leftConditionPanel"></div>
+      <div class="tab-panel" data-panel="skills" id="leftSkillsPanel"></div>
+      <div class="tab-panel" data-panel="spells" id="leftSpellsPanel"></div>
       <div class="tab-panel" data-panel="notes" id="leftNotesPanel"></div>
       <div class="tab-panel" data-panel="dice" id="leftDicePanel"></div>
     </aside>
@@ -915,6 +1013,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled {
     <!-- CENTER — shared story / chat feed -->
     <section class="story-column">
       <div class="story-feed" id="storyFeed"></div>
+      <div class="typing-indicator" id="typingIndicator"></div>
       <form class="composer" id="composerForm">
         <input id="composerInput" placeholder="Say something to the table…" autocomplete="off" />
         <button class="btn btn-primary" type="submit">Send</button>
@@ -923,6 +1022,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled {
 
     <!-- RIGHT SIDEBAR — Player tabs OR DM Tools, depending on role -->
     <aside class="sidebar right" id="rightSidebar">
+      <div class="panel-resizer" id="panelResizer" title="Drag to resize"></div>
       <div class="tab-bar" id="rightTabBar"></div>
       <div id="rightPanels"></div>
     </aside>
@@ -933,6 +1033,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled {
 <!-- ============================================================
      DM TUTORIAL MODAL — populated by dm-tools.js
      ============================================================ -->
+<div id="toastHost" class="toast-host"></div>
 <div id="tutorialModal" class="modal-overlay hidden">
   <div class="modal-card" id="tutorialModalCard"></div>
 </div>
@@ -992,8 +1093,8 @@ const GameData = {
   /* ---------------------------------------------------------------- *
    * The seven core attributes players spend points on.
    * ---------------------------------------------------------------- */
-  attributes: ["Damage", "Speed", "Stealth", "Vitality", "Magic", "Knowledge", "Fortitude"],
-  attributeCap: 10, // hard cap per attribute
+  attributes: ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma", "Stealth"],
+  attributeCap: 20, // hard cap per attribute (races can lower it per stat)
 
   /* ---------------------------------------------------------------- *
    * Magic: four elements, each with tiers. Sub Category spells require
@@ -1118,13 +1219,13 @@ const GameData = {
           { name: "Clay Drill", desc: "Create a rapidly spinning drill of earth that can be fired to drill into an enemy." },
           { name: "Quick Sand", desc: "Manipulate the earth to create quick sand, trapping the enemy. (Countered by Sword Water Style.)" },
           { name: "Armour Up", desc: "Create armour from the earth around you — quality depends on available resources." },
-          { name: "Heal", desc: "Manipulate natural resources in water and earth to heal a wound — effectiveness depends on skill. Requires some fire skill to close the wound with heat.", subCategory: true },
         ],
         unique: [
           { name: "Clay Wagon", desc: "Manipulate earth into a wheeled wagon you can move with mana — a means of transport." },
           { name: "Figure Create", desc: "Manipulate earth into a small doll or figure of someone — accuracy depends on how well you know them." },
           { name: "Trap", desc: "Create a trapdoor that drops any enemy who steps on it into a pit of spikes." },
           { name: "Clay Manipulation", desc: "Manipulate earth into any structure your imagination and skill allow, such as a house or statue." },
+          { name: "Heal", desc: "Manipulate natural resources in water and earth to heal a wound — effectiveness depends on skill. Requires some fire skill to close the wound with heat.", subCategory: true },
         ],
         ultimate: [
           { name: "Clay Giant", desc: "Create a giant clay doll (with its own health) that regenerates when damaged, at the cost of mana. Can shoot darts of earth." },
@@ -1276,6 +1377,294 @@ GameData.allSpells = Object.entries(GameData.magic).flatMap(([elementKey, elemen
 if (typeof module !== "undefined") module.exports = GameData;
 
 
+/* ================= rules.js (races, skills, auto-grants) ================= */
+
+GameData.magicCore = {
+  paragraphs: [
+    "All magic is based on words or phrases that help mana flow through someone's body for a certain reaction. When someone gets close to or masters the flow of mana they can cast spells without saying these words or phrases — called incantationless magic.",
+    "New spells are constantly being made by aspiring magicians. Due to the Elovians' great advancements in magic, their race has been discovering new methods of using magic at a very fast pace.",
+    "Sub category spells are more difficult to learn than normal spells since they require some talent in two or more elements.",
+  ],
+};
+
+GameData.magic.intellectual = {
+  label: "Intellectual",
+  summary: "Mind-bending arts that work on perception and will rather than on the elements.",
+  tiers: { general: GameData.intellectualSkills },
+};
+GameData.magic.physical = {
+  label: "Physical Enhancement",
+  summary: "Very simple magic that most swordsmen and close-quarter combatants use. Its effect is usually shaped by the user's sword style, but there are still some simple general uses.",
+  tiers: {
+    general: [
+      { name: "Dexterity Up", desc: "Increases your speed, allowing more advanced movement actions and possibly advantage. Effectiveness depends on your magic proficiency." },
+      { name: "Strength Up", desc: "Increases your raw strength for increased physical damage, or lets even a low-strength player attempt harder tasks. Depends on magic proficiency and existing strength." },
+      { name: "Charisma Up", desc: "Makes you a little more attractive — mostly useless compared to intellectual skills like Manipulate. Can give Charisma advantage based on magic proficiency." },
+    ],
+  },
+};
+GameData.tierOrder = ["beginner", "intermediate", "advanced", "unique", "ultimate", "general"];
+
+/* ---- Sword style skills (auto-granted by the style the DM assigns) ---- */
+GameData.swordSkills = {
+  "Sword Saint Style": [
+    { name: "Imbue", movement: true, desc: "Even though the Elovians outcasts had no talent for magic, they still developed some techniques using it. Imbuing the blade makes it glow and pierce skin more easily; with mastery it can slice through people like butter. Also looks awesome. Duration depends on mastery and magic proficiency (2 turns at lowest mastery and low magic proficiency)." },
+    { name: "Glowing Pierce", desc: "Stab repeatedly, using light enhancement from magic. Better against crowds of small enemies like rodents. Flashy, impressive and quite easy to pull off." },
+    { name: "Saint Slash", desc: "Slash the air with such force and grace that it creates a vibration that parts the air, stunning the enemy and dealing damage dependent on mastery. With further mastery it can be used consecutively." },
+    { name: "Flèche Voyage", desc: "A quick, running cross-step attack followed by a quick trip or low kick. Best on enemies of similar size, lowering their position to set up other techniques." },
+    { name: "Gleam Parry", extra: true, desc: "Bind and deflect an incoming weapon with the imbued blade, opening a clean riposte. Stronger while Imbue is active." },
+    { name: "Radiant Flourish", extra: true, desc: "A dazzling display of blade work that draws every eye. Distracts enemies or impresses onlookers, giving advantage on the next Charisma check or feint." },
+  ],
+  "Sword Brute Style": [
+    { name: "Half-Sword Stance", movement: true, desc: "Swap your stance to hold the hilt with one hand and the unsharpened ricasso with the other, giving greater control for thrusting and close-quarters work." },
+    { name: "Herculean Strike", variant: true, desc: "Move differs by stance. Standard Stance: put all your body weight into one strike, dealing massive damage dependent on your weight/size. Half-Sword Stance: plant your weight into the ground and gain control — in a close-quarters duel you become an unstoppable wall, dependent on weight/size." },
+    { name: "Ground Slam", desc: "Slap the earth with the blunt side of the blade, causing a quake. With mastery it can imitate an earthquake. Stance changes it little — you are smacking the ground really hard." },
+    { name: "Pommel Smash", extra: true, desc: "Drive the pommel or crossguard into an enemy's face or joints at close range. Best from Half-Sword Stance; staggers and can break guard." },
+    { name: "Bulwark Shoulder", extra: true, desc: "Throw your whole frame into a shoulder charge, shoving enemies back or off balance. Effect scales with your weight/size." },
+  ],
+  "Sword Water Style": [
+    { name: "Flowing Water Step", movement: true, desc: "Appear behind an enemy without making a sound, giving advantage for a stealth attack. More effective in swamps or wet environments." },
+    { name: "Reflection Burst", desc: "Sweep surrounding water into the air and swiftly jump between the reflections of each airborne droplet, moving near-instantly wherever the water reaches unobstructed. Low mastery needs lots of nearby water and shorter range; more mastery allows longer distances, passing through obstructions, and siphoning water from the atmosphere." },
+    { name: "Dispersing Mist", desc: "Slash the enemy multiple times, creating a mist of blood. Can terrify enemies and is very effective against unsuspecting ones." },
+    { name: "Ripple Parry", extra: true, desc: "Let a strike slide off a flowing guard, redirecting its force. Grants advantage on your next movement or counter." },
+    { name: "Undertow Sweep", extra: true, desc: "A low, dragging cut that pulls an enemy's footing out from under them, especially effective on wet or muddy ground." },
+  ],
+  "Sword Fiend Style": [
+    { name: "Claw Enhancement", movement: true, desc: "Use physical enhancement magic to form 2 blades, turning your sword into a claw-like weapon. Mostly boosts other techniques. Duration depends on mastery and magic proficiency (2 turns at lowest mastery and low magic proficiency)." },
+    { name: "Shield Breaker", desc: "More effective with Claw Enhancement active. Target the shield rather than the enemy, hook the blade around it and crack it open. Not very effective in actual attacks." },
+    { name: "Tiger's Pounce", desc: "More effective with high Dexterity. Jump into the air or at an enemy from a height advantage and slash their limbs or chest to maximize surface area impact." },
+    { name: "Feral Rend", extra: true, desc: "A flurry of raking claw slashes that tear armor straps, hide and limbs. Strong against unarmored or lightly armored foes." },
+    { name: "Hook & Disarm", extra: true, desc: "Hook an enemy's weapon with the claw blades and wrench it from their grip. Best against sword and spear wielders." },
+  ],
+};
+
+/* ---- Attribute skills: unlocked automatically when the stat reaches the level ---- */
+GameData.statSkills = [
+  { stat: "Strength", level: 6, name: "Heavy Lifting", desc: "Carry, push or drag loads others cannot." },
+  { stat: "Strength", level: 9, name: "Grapple", desc: "Seize and hold an opponent in place." },
+  { stat: "Strength", level: 12, name: "Break Down Door", desc: "Smash through doors, barricades and weak walls." },
+  { stat: "Strength", level: 15, name: "Overpower", desc: "Win contests of raw force; disarm or shove larger foes." },
+  { stat: "Strength", level: 18, name: "Titan's Grip", desc: "Wield oversized weapons and bend metal bars." },
+  { stat: "Dexterity", level: 6, name: "Balance", desc: "Walk ledges, ropes and beams without a check." },
+  { stat: "Dexterity", level: 9, name: "Acrobatics", desc: "Tumble, vault and land safely from short falls." },
+  { stat: "Dexterity", level: 11, name: "Quick Draw", desc: "Draw a weapon or item without spending an action." },
+  { stat: "Dexterity", level: 14, name: "Marksmanship", desc: "Precise ranged attacks with bows, throwing knives and more." },
+  { stat: "Dexterity", level: 17, name: "Evasion", desc: "Slip out of the way of area attacks and traps." },
+  { stat: "Constitution", level: 7, name: "Endurance", desc: "Travel, march or fight far longer before tiring." },
+  { stat: "Constitution", level: 10, name: "Tough Skin", desc: "Shrug off minor wounds and weather." },
+  { stat: "Constitution", level: 13, name: "Iron Gut", desc: "Resist poisons, rot and bad food." },
+  { stat: "Constitution", level: 16, name: "Second Wind", desc: "Once per fight, push through and recover a little HP." },
+  { stat: "Intelligence", level: 7, name: "Arcane Lore", desc: "Recognise spells, magical items and their effects." },
+  { stat: "Intelligence", level: 10, name: "Investigation", desc: "Piece together clues, read scenes and find hidden things." },
+  { stat: "Intelligence", level: 12, name: "Alchemy", desc: "Brew simple potions and identify unknown ones." },
+  { stat: "Intelligence", level: 14, name: "Tactics", desc: "Read a battlefield and grant allies advantage on a plan." },
+  { stat: "Intelligence", level: 17, name: "Spell Analysis", desc: "Study a spell as it is cast to learn how to counter it." },
+  { stat: "Wisdom", level: 7, name: "Perception", desc: "Notice details, ambushes and distant movement." },
+  { stat: "Wisdom", level: 9, name: "Survival", desc: "Forage, track and find shelter in the wild." },
+  { stat: "Wisdom", level: 11, name: "Medicine", desc: "Treat wounds and illness without magic." },
+  { stat: "Wisdom", level: 13, name: "Insight", desc: "Sense lies, motives and hidden intent." },
+  { stat: "Wisdom", level: 16, name: "Mana Sense", desc: "Feel nearby mana and the strength of a caster." },
+  { stat: "Charisma", level: 6, name: "Performance", desc: "Sing, tell stories and entertain a crowd." },
+  { stat: "Charisma", level: 8, name: "Persuasion", desc: "Convince others with honest argument." },
+  { stat: "Charisma", level: 10, name: "Deception", desc: "Lie, bluff and disguise your intent." },
+  { stat: "Charisma", level: 12, name: "Intimidation", desc: "Cow others into backing down." },
+  { stat: "Charisma", level: 15, name: "Leadership", desc: "Rally allies for a morale bonus." },
+  { stat: "Stealth", level: 5, name: "Sneak", desc: "Move quietly and stay out of sight." },
+  { stat: "Stealth", level: 8, name: "Hide in Shadows", desc: "Vanish into cover, darkness or a crowd." },
+  { stat: "Stealth", level: 11, name: "Silent Step", desc: "Move at full speed without making a sound." },
+  { stat: "Stealth", level: 13, name: "Pickpocket", desc: "Lift small items from a target's person." },
+  { stat: "Stealth", level: 15, name: "Sleight of Hand", desc: "Palm, swap or hide objects in plain sight, even while watched." },
+  { stat: "Stealth", level: 18, name: "Assassinate", desc: "Strike an unaware target for devastating damage." },
+];
+
+/* ---- Races ---- */
+GameData.charRaces = {
+  "Human": {
+    desc: "Versatile and driven. Naturally persuasive and well-learned.",
+    bonus: { Charisma: 1, Wisdom: 1 }, max: {}, height: [56, 77], magicMod: 0,
+    elementByStat: { Strength: "earth", Dexterity: "wind", Constitution: "earth", Intelligence: "fire", Wisdom: "water", Charisma: "fire", Stealth: "wind" },
+  },
+  "Elf": {
+    desc: "Graceful and quiet, masters of wind and the forest. Frail and poor with brute force.",
+    bonus: { Dexterity: 3, Wisdom: 2, Stealth: 2 }, max: { Strength: 14, Constitution: 15 }, height: [66, 102], magicMod: 1, element: "wind",
+  },
+  "Demi-Human": {
+    desc: "Animal-featured people. Abilities depend heavily on the animal they take after.",
+    height: [48, 72], magicMod: 0,
+    subraces: {
+      "Arachnid":     { bonus: { Stealth: 3, Dexterity: 2 }, max: { Charisma: 14 }, height: [54, 73], element: "earth" },
+      "Feline":       { bonus: { Dexterity: 3, Stealth: 2 }, max: { Constitution: 16 }, height: [53, 70], element: "wind" },
+      "Wolf":         { bonus: { Strength: 2, Constitution: 2, Wisdom: 1 }, max: { Intelligence: 16 }, height: [65, 84], element: "fire" },
+      "Misc. Bird":   { bonus: { Dexterity: 3, Wisdom: 2 }, max: { Strength: 13, Constitution: 14 }, height: [48, 72], element: "wind" },
+      "Misc. Aquatic":{ bonus: { Constitution: 2, Intelligence: 1, Dexterity: 1 }, max: { Strength: 16 }, height: [48, 84], element: "water" },
+      "Misc. Insect": { bonus: { Stealth: 2, Dexterity: 2, Constitution: 1 }, max: { Strength: 12, Charisma: 13 }, height: [24, 60], element: "earth" },
+      "Misc. Reptile":{ bonus: { Constitution: 3, Strength: 1 }, max: { Dexterity: 16 }, height: [48, 72], element: "fire" },
+      "Misc. Mammal": { bonus: { Strength: 1, Constitution: 1, Wisdom: 1 }, max: {}, height: [36, 96], element: "earth" },
+    },
+  },
+  "Demon": {
+    desc: "Physically powerful and naturally aggressive, with suppressed magical ability.",
+    bonus: { Strength: 3, Constitution: 3 }, max: { Wisdom: 14, Intelligence: 16, Charisma: 15 }, height: [84, 144], magicMod: -2, element: "fire",
+  },
+  "Ork": {
+    desc: "Brutal and tough, trained in warbands. Little patience for study or courtesy.",
+    bonus: { Strength: 4, Constitution: 3 }, max: { Intelligence: 13, Wisdom: 13, Charisma: 12, Stealth: 12 }, height: [72, 125], magicMod: -3, element: "earth",
+  },
+};
+
+GameData.raceSkills = {
+  "Human": [
+    { name: "Adaptable", desc: "Humans learn fast: gain advantage on one skill check per session (DM discretion)." },
+    { name: "Pious Resolve", desc: "Faith in the Gods steadies you against fear and mental effects." },
+  ],
+  "Elf": [
+    { name: "Keen Ears", desc: "Hear approaching creatures and whispers well beyond normal range." },
+    { name: "Forest Step", desc: "Move through trees and undergrowth without slowing or leaving tracks." },
+  ],
+  "Demon": [
+    { name: "Infernal Hide", desc: "Tough skin and resistance to heat and flame." },
+    { name: "Battle Fury", desc: "Once per fight, trade defense for a burst of extra damage." },
+  ],
+  "Ork": [
+    { name: "Warband Roar", desc: "A thunderous shout that rallies allies or frightens weak-willed foes." },
+    { name: "Thick Skull", desc: "Shrug off blunt impacts and stuns more easily." },
+  ],
+  "Demi-Human": [
+    { name: "Demihuman Kinship", desc: "Easily earn the trust of other Demi-Humans and outcasts." },
+  ],
+};
+GameData.subraceSkills = {
+  "Arachnid": [{ name: "Web Weaving", desc: "Spin sticky webs to trap, climb or ensnare." }, { name: "Wall Crawl", desc: "Climb walls and ceilings without a check." }],
+  "Feline": [{ name: "Night Eyes", desc: "See well in near-darkness." }, { name: "Pounce Reflex", desc: "Land on your feet and strike first when ambushing." }],
+  "Wolf": [{ name: "Keen Nose", desc: "Track by scent and detect hidden creatures nearby." }, { name: "Pack Howl", desc: "Call allies or coordinate a flank across long distances." }],
+  "Misc. Bird": [{ name: "Glide", desc: "Slow a fall and glide short distances." }, { name: "Hawk Eyes", desc: "See fine detail at great distance." }],
+  "Misc. Aquatic": [{ name: "Gills & Fins", desc: "Breathe and move swiftly underwater." }, { name: "Slick Skin", desc: "Hard to grapple and quick to slip free of bonds." }],
+  "Misc. Insect": [{ name: "Chitin Shell", desc: "Natural armor against slashes and small projectiles." }, { name: "Compound Sight", desc: "See a wide arc around you; hard to flank." }],
+  "Misc. Reptile": [{ name: "Scaled Hide", desc: "Natural armor and resistance to venom." }, { name: "Cold Blood", desc: "Remain calm and still; advantage on hiding while motionless." }],
+  "Misc. Mammal": [{ name: "Keen Instinct", desc: "Gain a hunch about danger just before it strikes." }],
+};
+
+function getRaceInfo(race, subrace) {
+  const def = GameData.charRaces[race];
+  if (!def) return { bonus: {}, max: {}, height: [56, 77], element: null, magicMod: 0, label: race || "" };
+  const sub = def.subraces && subrace ? def.subraces[subrace] : null;
+  const src = sub || def;
+  return {
+    bonus: src.bonus || {},
+    max: src.max || {},
+    height: src.height || def.height,
+    element: src.element || def.element || null,
+    elementByStat: def.elementByStat || null,
+    magicMod: def.magicMod || 0,
+    label: sub ? `${race} (${subrace})` : race,
+    desc: def.desc,
+  };
+}
+
+function formatHeight(inches) {
+  return `${Math.floor(inches / 12)}'${inches % 12}"`;
+}
+function heightFromRoll(roll, range) {
+  return Math.round(range[0] + ((roll - 1) / 99) * (range[1] - range[0]));
+}
+
+function describeRace(info) {
+  const bonus = Object.entries(info.bonus).map(([k, v]) => `+${v} ${k}`).join(", ");
+  const max = Object.entries(info.max).map(([k, v]) => `${k} max ${v}`).join(", ");
+  return `${info.desc || ""} ${bonus ? "Bonuses: " + bonus + "." : ""} ${max ? "Limits: " + max + "." : ""}`.trim();
+}
+
+/** Spells a new character starts with, from race affinity + Intelligence/Wisdom + other stats. */
+function computeStartingSpells(race, subrace, stats) {
+  const info = getRaceInfo(race, subrace);
+  let el = info.element;
+  if (!el && info.elementByStat) {
+    let best = GameData.attributes[0];
+    GameData.attributes.forEach((a) => { if ((stats[a] || 0) > (stats[best] || 0)) best = a; });
+    el = info.elementByStat[best] || "water";
+  }
+  const out = [];
+  const score = Math.floor(((stats.Intelligence || 0) + (stats.Wisdom || 0)) / 2) + info.magicMod;
+  const pick = (tier, n) => {
+    const list = (el && GameData.magic[el] && GameData.magic[el].tiers[tier]) || [];
+    list.filter((sp) => !sp.subCategory).slice(0, n).forEach((sp) => out.push({ name: sp.name, element: el, tier, auto: true }));
+  };
+  if (score >= 5) pick("beginner", score >= 8 ? 2 : 1);
+  if (score >= 11) pick("intermediate", 1);
+  if (score >= 14) pick("advanced", 1);
+  if (score >= 17) pick("unique", 1);
+  const add = (name, element, ok) => { if (ok) out.push({ name, element, tier: "general", auto: true }); };
+  add("Dexterity Up", "physical", (stats.Dexterity || 0) >= 12);
+  add("Strength Up", "physical", (stats.Strength || 0) >= 12);
+  add("Charisma Up", "physical", (stats.Charisma || 0) >= 15);
+  add("Intuition", "intellectual", (stats.Wisdom || 0) >= 12);
+  add("Manipulate", "intellectual", (stats.Charisma || 0) >= 13 && (stats.Intelligence || 0) >= 11);
+  add("Hallucinate", "intellectual", (stats.Intelligence || 0) >= 15);
+  add("Manifest", "intellectual", (stats.Intelligence || 0) >= 17 && (stats.Wisdom || 0) >= 15);
+  add("Degrade", "intellectual", (stats.Intelligence || 0) >= 18);
+  return out;
+}
+
+/** Every skill a character currently has, grouped for display. */
+function computeSkills(character, customSkills) {
+  const stats = character.stats || {};
+  const groups = [];
+  const colorOf = (stat) => (typeof STAT_COLORS !== "undefined" && STAT_COLORS[stat]) || "var(--gold)";
+
+  const racial = [];
+  if (character.race) {
+    (GameData.raceSkills[character.race] || []).forEach((s) => racial.push({ ...s, tag: character.race, color: "var(--gold)" }));
+    if (character.subrace) (GameData.subraceSkills[character.subrace] || []).forEach((s) => racial.push({ ...s, tag: character.subrace, color: "var(--gold)" }));
+  }
+  if (racial.length) groups.push({ title: "Racial", skills: racial });
+
+  groups.push({
+    title: "Attribute skills",
+    empty: "Raise your attributes to unlock skills.",
+    skills: GameData.statSkills.filter((s) => (stats[s.stat] || 0) >= s.level)
+      .map((s) => ({ name: s.name, desc: s.desc, tag: `${s.stat} ${s.level}+`, color: colorOf(s.stat) })),
+  });
+
+  if (character.swordStyle && GameData.swordSkills[character.swordStyle]) {
+    groups.push({
+      title: `${character.swordStyle} — ${character.swordMastery || "Beginner"}`,
+      skills: GameData.swordSkills[character.swordStyle].map((s) => ({
+        name: s.name, desc: s.desc,
+        tag: s.movement ? "Movement action" : s.variant ? "Variant" : "Sword",
+        color: "var(--fire)",
+      })),
+    });
+  }
+
+  const custom = (customSkills || []).filter((s) => (stats[s.thresholdAttribute] || 0) >= s.thresholdValue);
+  if (custom.length) {
+    groups.push({
+      title: "Campaign skills",
+      skills: custom.map((s) => ({ name: s.name, desc: s.description, tag: `${s.thresholdAttribute} ${s.thresholdValue}+`, color: "var(--mana)" })),
+    });
+  }
+  return groups;
+}
+
+function skillGroupsHtml(groups) {
+  return groups.map((g) => `
+    <label class="group-title">${escapeHtml(g.title)}</label>
+    ${g.skills.length ? g.skills.map((s) => `
+      <div class="skill-card">
+        <div class="skill-head"><strong>${escapeHtml(s.name)}</strong><span class="skill-tag" style="background:${s.color}">${escapeHtml(s.tag)}</span></div>
+        <p>${escapeHtml(s.desc || "")}</p>
+      </div>`).join("") : `<p style="color:var(--text-lo); font-size:12.5px;">${escapeHtml(g.empty || "None.")}</p>`}
+  `).join("");
+}
+
+function sheetSummary(c) {
+  if (!c.race) return "";
+  const bits = [c.subrace ? `${c.race} (${c.subrace})` : c.race];
+  if (c.heightInches) bits.push(formatHeight(c.heightInches));
+  return bits.join(" · ");
+}
+
+
 /* ================= db.js ================= */
 /**
  * db.js
@@ -1330,7 +1719,7 @@ const DB = {
       code,
       name: name || `${code}'s Table`,
       dmUserId,
-      pointBudget: Number(pointBudget) || 20,
+      pointBudget: Number(pointBudget) || 70,
       createdAt: Date.now(),
     };
     const ref = await col("rooms").add(data);
@@ -1405,6 +1794,11 @@ const DB = {
       swordStyle: null,
       swordMastery: null,
       knownSpells: [],
+      race: null,
+      subrace: null,
+      heightRoll: null,
+      heightInches: null,
+      rollsUsed: 0,
       createdAt: Date.now(),
     };
     const ref = await col("characters").add(data);
@@ -1467,12 +1861,33 @@ const DB = {
     return { id: ref.id, ...data };
   },
 
+  /** Atomically claims a pending request; returns null if it was already rolled or cancelled. */
   async completeDiceRequest(requestId, result) {
     const ref = col("diceRequests").doc(requestId);
-    const doc = await ref.get();
-    if (!doc.exists) return null;
-    await ref.update({ status: "completed", result });
-    return { id: doc.id, ...doc.data(), status: "completed", result };
+    return firestoreDB.runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
+      if (!doc.exists || doc.data().status !== "pending") return null;
+      tx.update(ref, { status: "completed", result });
+      return { id: doc.id, ...doc.data(), status: "completed", result };
+    });
+  },
+
+  async cancelDiceRequest(requestId) {
+    const ref = col("diceRequests").doc(requestId);
+    return firestoreDB.runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
+      if (!doc.exists || doc.data().status !== "pending") return null;
+      tx.update(ref, { status: "cancelled" });
+      return { id: doc.id, ...doc.data(), status: "cancelled" };
+    });
+  },
+
+  async getPendingDiceRequestsByRoom(roomId) {
+    const snap = await col("diceRequests")
+      .where("roomId", "==", roomId)
+      .where("status", "==", "pending")
+      .get();
+    return sortByCreatedAt(snap.docs.map(docToObj));
   },
 
   async getPendingDiceRequests(roomId, characterId) {
@@ -1514,6 +1929,26 @@ const DB = {
     };
     const ref = await col("customSkills").add(data);
     return { id: ref.id, ...data };
+  },
+
+  /* ------------------------------------------------------ custom spells */
+  async addCustomSpell({ roomId, name, description, element, tier, subCategory }) {
+    const data = {
+      roomId,
+      name,
+      description,
+      element: element || "custom",
+      tier: tier || "beginner",
+      subCategory: !!subCategory,
+      createdAt: Date.now(),
+    };
+    const ref = await col("customSpells").add(data);
+    return { id: ref.id, ...data };
+  },
+
+  async getCustomSpells(roomId) {
+    const snap = await col("customSpells").where("roomId", "==", roomId).get();
+    return sortByCreatedAt(snap.docs.map(docToObj));
   },
 
   async getCustomSkills(roomId) {
@@ -1681,11 +2116,21 @@ const Dice = {
     return 1 + Math.floor(Math.random() * sides);
   },
 
+  async announceRoll(request, character, result, forced) {
+    const msg = await DB.addMessage({
+      roomId: request.roomId,
+      authorId: character.id,
+      authorName: character.name,
+      type: "roll",
+      text: `rolled a ${result} on d${request.sides}${request.label ? ` — ${request.label}` : ""}${forced ? " (rolled by the Dice Master)" : ""}`,
+    });
+    Sync.emit("chat:new", { message: msg });
+  },
+
   /**
-   * Renders a pending dice-request card into `container` for the player
-   * who owns it, animates a short "rolling" beat, then resolves the
-   * request in the DB, tells every tab about it via Sync, and posts the
-   * result into the shared story feed.
+   * A player's one roll for a DM request. The request is claimed atomically
+   * first, so it can only ever be rolled once (and not at all if the DM
+   * cancelled it or forced the roll in the meantime).
    */
   renderRequestCard(container, request, character) {
     const card = document.createElement("div");
@@ -1697,8 +2142,14 @@ const Dice = {
     `;
     container.appendChild(card);
 
-    document.getElementById(`rollBtn-${request.id}`).addEventListener("click", () => {
-      const face = document.getElementById(`face-${request.id}`);
+    const btn = card.querySelector(`#rollBtn-${request.id}`);
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      const result = Dice.roll(request.sides);
+      const claimed = await DB.completeDiceRequest(request.id, result);
+      if (!claimed) { card.remove(); return; }
+
+      const face = card.querySelector(`#face-${request.id}`);
       face.classList.add("rolling");
       let ticks = 0;
       const spin = setInterval(async () => {
@@ -1707,25 +2158,25 @@ const Dice = {
         if (ticks > 8) {
           clearInterval(spin);
           face.classList.remove("rolling");
-          const result = Dice.roll(request.sides);
           face.textContent = result;
-          await DB.completeDiceRequest(request.id, result);
-          const msg = await DB.addMessage({
-            roomId: request.roomId,
-            authorId: character.id,
-            authorName: character.name,
-            type: "roll",
-            text: `rolled a ${result} on d${request.sides}${request.label ? ` — ${request.label}` : ""}`,
-          });
-          Sync.emit("chat:new", { message: msg });
+          await Dice.announceRoll(request, character, result, false);
           Sync.emit("dice:result", { request: { ...request, status: "completed", result } });
-          card.remove();
         }
       }, 90);
     });
   },
 
-  /** Free roll (no DM request) triggered by the player themselves. */
+  /** DM forces the roll for a player: no button press needed. Returns the result, or null if already resolved. */
+  async forceRoll(request, character) {
+    const result = Dice.roll(request.sides);
+    const claimed = await DB.completeDiceRequest(request.id, result);
+    if (!claimed) return null;
+    await Dice.announceRoll(request, character, result, true);
+    Sync.emit("dice:result", { request: { ...request, status: "completed", result } });
+    return result;
+  },
+
+  /** Free roll — only offered to the Dice Master. */
   async freeRoll(sides, roomId, character) {
     const result = Dice.roll(sides);
     const msg = await DB.addMessage({
@@ -1871,17 +2322,19 @@ document.getElementById("signOutBtn").addEventListener("click", () => {
  */
 
 const STAT_COLORS = {
-  Damage: "var(--fire)",
-  Speed: "var(--wind)",
+  Strength: "var(--fire)",
+  Dexterity: "var(--wind)",
+  Constitution: "var(--danger)",
+  Intelligence: "var(--water)",
+  Wisdom: "var(--mana)",
+  Charisma: "var(--gold)",
   Stealth: "var(--earth)",
-  Vitality: "var(--danger)",
-  Magic: "var(--mana)",
-  Knowledge: "var(--water)",
-  Fortitude: "var(--parchment-dark)",
 };
 
 let session, user, room, myCharacter, isDM;
 
+const typingUsers = new Map();
+let lastTypingEmit = 0;
 let syncWired = false;
 let rosterWired = false;
 let composerWired = false;
@@ -1914,6 +2367,7 @@ async function enterRoom() {
   Sync.connect(room.id);
   if (!syncWired) { wireSyncListeners(); syncWired = true; }
   if (!rosterWired) { wireRosterButton(); rosterWired = true; }
+  wirePanelResizer();
 
   if (!myCharacter.built) {
     showCreationView();
@@ -1935,7 +2389,7 @@ function canSpeak() {
 }
 
 function canRoll() {
-  return isDM || isMyTurn() || !!room.rollUnlocked;
+  return isDM;
 }
 
 /* ==================================================================
@@ -1947,48 +2401,128 @@ function showCreationView() {
   document.getElementById("appView").classList.add("hidden");
 
   const budget = room.pointBudget;
+  const cap = GameData.attributeCap;
   document.getElementById("creationBudgetLine").textContent =
-    `Distribute your ${budget} points across the seven attributes. No attribute may exceed ${GameData.attributeCap}.`;
+    `Fill out your full character sheet. Spend all ${budget} points across the seven attributes — your race grants free bonuses and may limit some attributes below ${cap}.`;
   document.getElementById("creationCharName").value = myCharacter.name || "";
 
-  const stats = { ...myCharacter.stats };
-  const rowsEl = document.getElementById("creationStatRows");
-  rowsEl.innerHTML = "";
+  const raceSel = document.getElementById("creationRace");
+  const subSel = document.getElementById("creationSubrace");
+  const subWrap = document.getElementById("creationSubraceWrap");
+  raceSel.innerHTML = Object.keys(GameData.charRaces).map((r) => `<option value="${r}">${r}</option>`).join("");
+  subSel.innerHTML = Object.keys(GameData.charRaces["Demi-Human"].subraces).map((r) => `<option value="${r}">${r}</option>`).join("");
 
-  function pointsUsed() {
-    return Object.values(stats).reduce((a, b) => a + b, 0);
+  let race = myCharacter.race || "Human";
+  let subrace = myCharacter.subrace || Object.keys(GameData.charRaces["Demi-Human"].subraces)[0];
+  let heightRoll = myCharacter.heightRoll || null; // d100 result; the height is derived from the race range
+  let rollsUsed = myCharacter.rollsUsed || 0;      // 1 roll + 3 re-rolls = 4 total
+  const MAX_ROLLS = 4;
+  raceSel.value = race;
+  subSel.value = subrace;
+
+  const alloc = {};
+  GameData.attributes.forEach((a) => (alloc[a] = 0));
+
+  const info = () => getRaceInfo(race, race === "Demi-Human" ? subrace : null);
+  const statVal = (a) => (info().bonus[a] || 0) + alloc[a];
+  const statMax = (a) => Math.min(cap, info().max[a] !== undefined ? info().max[a] : cap);
+  const pointsUsed = () => Object.values(alloc).reduce((x, y) => x + y, 0);
+  const finalStats = () => { const o = {}; GameData.attributes.forEach((a) => (o[a] = statVal(a))); return o; };
+  const subraceKey = () => (race === "Demi-Human" ? subrace : null);
+
+  function clampToRace() {
+    GameData.attributes.forEach((a) => {
+      const room_ = statMax(a) - (info().bonus[a] || 0);
+      if (alloc[a] > room_) alloc[a] = Math.max(0, room_);
+    });
   }
-  function refreshRemaining() {
+
+  function refreshRows() {
+    const rowsEl = document.getElementById("creationStatRows");
+    rowsEl.innerHTML = GameData.attributes.map((attr) => {
+      const bonus = info().bonus[attr] || 0;
+      const mx = statMax(attr);
+      const limited = mx < cap;
+      return `
+        <div class="stat-editor-row">
+          <span class="stat-name">${attr}</span>
+          <div class="stepper">
+            <button type="button" data-dir="-1" data-attr="${attr}">−</button>
+            <span class="val" style="width:28px;">${statVal(attr)}</span>
+            <button type="button" data-dir="1" data-attr="${attr}">+</button>
+          </div>
+          <span class="stat-limit">${bonus ? `+${bonus} racial` : ""}${bonus && limited ? " · " : ""}${limited ? `max ${mx}` : ""}</span>
+        </div>`;
+    }).join("");
     document.getElementById("pointsRemaining").textContent = budget - pointsUsed();
   }
 
-  GameData.attributes.forEach((attr) => {
-    const row = document.createElement("div");
-    row.className = "stat-editor-row";
-    row.innerHTML = `
-      <span class="stat-name">${attr}</span>
-      <div class="stepper">
-        <button type="button" data-dir="-1" data-attr="${attr}">−</button>
-        <span class="val" id="val-${attr}">${stats[attr]}</span>
-        <button type="button" data-dir="1" data-attr="${attr}">+</button>
-      </div>
-    `;
-    rowsEl.appendChild(row);
-  });
+  function refreshGrants() {
+    const temp = { race, subrace: subraceKey(), stats: finalStats(), swordStyle: null };
+    const skills = computeSkills(temp, []).flatMap((g) => g.skills.map((s) => s.name));
+    const spells = computeStartingSpells(race, subraceKey(), temp.stats);
+    document.getElementById("creationGrants").innerHTML = `
+      <strong style="color:var(--gold-bright);">Starting skills</strong> (more unlock as attributes rise)<br>
+      ${skills.length ? skills.map((n) => `<span class="status-chip">${escapeHtml(n)}</span>`).join("") : "None yet"}
+      <br><strong style="color:var(--gold-bright);">Starting spells</strong><br>
+      ${spells.length ? spells.map((sp) => `<span class="status-chip">${escapeHtml(sp.name)}</span>`).join("") : "None — raise Intelligence/Wisdom to start with magic"}`;
+  }
 
-  rowsEl.querySelectorAll("button[data-attr]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const attr = btn.dataset.attr;
-      const dir = Number(btn.dataset.dir);
-      const next = stats[attr] + dir;
-      if (next < 0 || next > GameData.attributeCap) return;
-      if (dir > 0 && pointsUsed() + 1 > budget) return;
-      stats[attr] = next;
-      document.getElementById(`val-${attr}`).textContent = next;
-      refreshRemaining();
-    });
-  });
-  refreshRemaining();
+  function refreshHeight() {
+    const range = info().height;
+    document.getElementById("creationHeightRange").textContent = `Range for ${info().label}: ${formatHeight(range[0])} – ${formatHeight(range[1])}`;
+    document.getElementById("creationHeight").textContent = heightRoll ? formatHeight(heightFromRoll(heightRoll, range)) : "Not rolled yet";
+    document.getElementById("creationDie").textContent = heightRoll || "?";
+    const btn = document.getElementById("creationRollBtn");
+    const rerollsLeft = Math.max(0, MAX_ROLLS - rollsUsed);
+    btn.textContent = rollsUsed === 0 ? "Roll for height" : rerollsLeft ? `Re-roll (${rerollsLeft} left)` : "No re-rolls left";
+    btn.disabled = rerollsLeft === 0;
+  }
+
+  function refreshRace() {
+    subWrap.classList.toggle("hidden", race !== "Demi-Human");
+    document.getElementById("creationRaceNote").textContent = describeRace(info());
+    clampToRace();
+    refreshRows();
+    refreshHeight();
+    refreshGrants();
+  }
+
+  raceSel.onchange = () => { race = raceSel.value; refreshRace(); };
+  subSel.onchange = () => { subrace = subSel.value; refreshRace(); };
+
+  document.getElementById("creationStatRows").onclick = (e) => {
+    const btn = e.target.closest("button[data-attr]");
+    if (!btn) return;
+    const attr = btn.dataset.attr;
+    const dir = Number(btn.dataset.dir);
+    if (dir > 0 && (statVal(attr) >= statMax(attr) || pointsUsed() >= budget)) return;
+    if (dir < 0 && alloc[attr] <= 0) return;
+    alloc[attr] += dir;
+    refreshRows();
+    refreshGrants();
+  };
+
+  document.getElementById("creationRollBtn").onclick = () => {
+    if (rollsUsed >= MAX_ROLLS) return;
+    rollsUsed += 1;
+    const die = document.getElementById("creationDie");
+    const btn = document.getElementById("creationRollBtn");
+    btn.disabled = true;
+    die.classList.add("rolling");
+    let ticks = 0;
+    const spin = setInterval(() => {
+      die.textContent = Dice.roll(100);
+      if (++ticks > 8) {
+        clearInterval(spin);
+        die.classList.remove("rolling");
+        heightRoll = Dice.roll(100);
+        refreshHeight();
+      }
+    }, 80);
+  };
+
+  refreshRace();
 
   const skipBtn = document.getElementById("skipCharacterBtn");
   if (isDM) {
@@ -2007,13 +2541,22 @@ function showCreationView() {
   document.getElementById("saveCharacterBtn").onclick = async () => {
     const name = document.getElementById("creationCharName").value.trim();
     const msg = document.getElementById("creationMsg");
-    if (!name) {
-      msg.textContent = "Give your character a name first.";
-      return;
-    }
+    if (!name) { msg.textContent = "Give your character a name first."; return; }
+    if (!heightRoll) { msg.textContent = "Roll for your height first."; return; }
+    if (pointsUsed() < budget) { msg.textContent = `You still have ${budget - pointsUsed()} attribute points to spend.`; return; }
+
+    const stats = finalStats();
     myCharacter.name = name;
+    myCharacter.race = race;
+    myCharacter.subrace = subraceKey();
     myCharacter.stats = stats;
     myCharacter.pointsSpent = pointsUsed();
+    myCharacter.heightRoll = heightRoll;
+    myCharacter.heightInches = heightFromRoll(heightRoll, info().height);
+    myCharacter.rollsUsed = rollsUsed;
+    const hpMax = 10 + stats.Constitution * 2;
+    myCharacter.hp = { current: hpMax, max: hpMax };
+    myCharacter.knownSpells = computeStartingSpells(race, subraceKey(), stats);
     myCharacter.built = true;
     myCharacter = await DB.upsertCharacter(myCharacter);
     Sync.emit("character:update", { character: myCharacter });
@@ -2022,7 +2565,7 @@ function showCreationView() {
       authorId: "system",
       authorName: "System",
       type: "system",
-      text: `${name} has joined the table.`,
+      text: `${name} (${info().label}, ${formatHeight(myCharacter.heightInches)}) has joined the table.`,
     });
     Sync.emit("chat:new", { message });
     showAppView();
@@ -2077,6 +2620,7 @@ function wireTabBar(tabBar, sidebar) {
     btn.onclick = () => {
       tabBar.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
+      btn.classList.remove("has-update");
       sidebar.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
       sidebar.querySelector(`[data-panel="${btn.dataset.tab}"]`).classList.add("active");
     };
@@ -2091,12 +2635,16 @@ function renderRightAsPlayer() {
   tabBar.innerHTML = `
     <button data-tab="stats" class="active">Stats</button>
     <button data-tab="condition">Condition</button>
+    <button data-tab="skills">Skills</button>
+    <button data-tab="spells">Spells</button>
     <button data-tab="notes">DM Notes</button>
     <button data-tab="dice">Dice</button>
   `;
   panels.innerHTML = `
     <div class="tab-panel active" data-panel="stats" id="playerStatsPanel"></div>
     <div class="tab-panel" data-panel="condition" id="playerConditionPanel"></div>
+    <div class="tab-panel" data-panel="skills" id="playerSkillsPanel"></div>
+    <div class="tab-panel" data-panel="spells" id="playerSpellsPanel"></div>
     <div class="tab-panel" data-panel="notes" id="playerNotesPanel"></div>
     <div class="tab-panel" data-panel="dice" id="playerDicePanel"></div>
   `;
@@ -2113,6 +2661,8 @@ async function renderPlayerTabs(prefix, character) {
   renderStatsPanel(document.getElementById(`${prefix}StatsPanel`), character);
   await Promise.all([
     renderConditionPanel(document.getElementById(`${prefix}ConditionPanel`), character),
+    renderSkillsPanel(document.getElementById(`${prefix}SkillsPanel`), character),
+    renderSpellsPanel(document.getElementById(`${prefix}SpellsPanel`), character),
     renderNotesPanel(document.getElementById(`${prefix}NotesPanel`)),
     renderDicePanel(document.getElementById(`${prefix}DicePanel`), character),
   ]);
@@ -2121,14 +2671,22 @@ async function renderPlayerTabs(prefix, character) {
 function renderStatsPanel(container, character) {
   if (!container) return;
   container.innerHTML = "";
+  if (character.race) {
+    const head = document.createElement("div");
+    head.className = "sheet-head";
+    head.innerHTML = `<strong>${escapeHtml(character.name)}</strong><br>${escapeHtml(sheetSummary(character))}`;
+    container.appendChild(head);
+  }
+  const info = getRaceInfo(character.race, character.subrace);
   GameData.attributes.forEach((attr) => {
-    const val = character.stats[attr] || 0;
+    const val = (character.stats && character.stats[attr]) || 0;
+    const mx = info.max[attr];
     const row = document.createElement("div");
     row.className = "stat-row";
     row.innerHTML = `
       <span class="stat-name">${attr}</span>
       <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${(val / GameData.attributeCap) * 100}%; background:${STAT_COLORS[attr]}"></div></div>
-      <span class="stat-val">${val}</span>
+      <span class="stat-val" title="${mx ? "Racial max " + mx : ""}">${val}</span>
     `;
     container.appendChild(row);
   });
@@ -2137,10 +2695,6 @@ function renderStatsPanel(container, character) {
 async function renderConditionPanel(container, character) {
   if (!container) return;
   const hpPct = Math.max(0, Math.min(100, (character.hp.current / character.hp.max) * 100));
-  const skills = await DB.getCustomSkills(room.id);
-  const unlocked = skills.filter(
-    (s) => (character.stats[s.thresholdAttribute] || 0) >= s.thresholdValue
-  );
 
   container.innerHTML = `
     <div class="hp-block">
@@ -2149,7 +2703,7 @@ async function renderConditionPanel(container, character) {
     </div>
     <div style="margin-bottom:20px;">
       <label>Status effects</label>
-      <div id="statusChips-${container.id}">
+      <div>
         ${character.statusEffects.length ? character.statusEffects.map((s) => `<span class="status-chip">${escapeHtml(s)}</span>`).join("") : `<span style="color:var(--text-lo); font-size:12.5px;">None active</span>`}
       </div>
     </div>
@@ -2157,23 +2711,103 @@ async function renderConditionPanel(container, character) {
       <label>Inventory</label>
       ${character.inventory.length ? character.inventory.map((i) => `<div class="inventory-item"><span>${escapeHtml(i.name)}</span><span class="qty">×${i.qty}</span></div>`).join("") : `<p style="color:var(--text-lo); font-size:12.5px;">Empty.</p>`}
     </div>
-    <div style="margin-bottom:20px;">
-      <label>Sword style</label>
-      ${character.swordStyle ? `<span class="status-chip">${escapeHtml(character.swordStyle)} — ${escapeHtml(character.swordMastery || "Beginner")}</span>` : `<p style="color:var(--text-lo); font-size:12.5px;">None assigned yet — ask your Dice Master.</p>`}
-    </div>
-    <div style="margin-bottom:20px;">
-      <label>Known spells</label>
-      ${(character.knownSpells || []).length ? character.knownSpells.map((s) => `<span class="status-chip">${escapeHtml(s.name)} <span style="color:var(--text-lo);">(${escapeHtml(s.element)}, ${escapeHtml(s.tier)})</span></span>`).join("") : `<p style="color:var(--text-lo); font-size:12.5px;">None granted yet.</p>`}
-    </div>
     <div>
-      <label>Unlocked skills</label>
-      ${unlocked.length ? unlocked.map((s) => `
-        <div class="skill-card">
-          <div class="skill-head"><strong>${escapeHtml(s.name)}</strong><span class="skill-tag" style="background:var(--mana)">${s.thresholdAttribute} ${s.thresholdValue}+</span></div>
-          <p>${escapeHtml(s.description)}</p>
-        </div>`).join("") : `<p style="color:var(--text-lo); font-size:12.5px;">Raise your attributes to unlock skills the Dice Master has set thresholds for.</p>`}
+      <label>Sword style</label>
+      ${character.swordStyle ? `<span class="status-chip">${escapeHtml(character.swordStyle)} — ${escapeHtml(character.swordMastery || "Beginner")}</span><p style="color:var(--text-lo); font-size:12.5px;">Its skills are listed on your Skills tab.</p>` : `<p style="color:var(--text-lo); font-size:12.5px;">None assigned yet — ask your Dice Master.</p>`}
     </div>
   `;
+}
+
+async function renderSkillsPanel(container, character) {
+  if (!container) return;
+  const custom = await DB.getCustomSkills(room.id);
+  container.innerHTML = skillGroupsHtml(computeSkills(character, custom));
+}
+
+async function renderSpellsPanel(container, character) {
+  if (!container) return;
+  await renderSpellBrowser(container, { character });
+}
+
+/**
+ * Filterable spell cards (element chips, tier, search, "known only").
+ * Used by the player Spells tab and the DM Spells tab. Includes the
+ * room's custom spells. State lives in the closure, so several browsers
+ * can exist at once without clashing ids.
+ */
+async function renderSpellBrowser(container, { character }) {
+  if (!container) return;
+  const custom = await DB.getCustomSpells(room.id);
+  const all = [];
+  Object.entries(GameData.magic).forEach(([ek, el]) => {
+    Object.entries(el.tiers).forEach(([tk, list]) => list.forEach((sp) => all.push({ name: sp.name, desc: sp.desc, element: ek, tier: tk, sub: !!sp.subCategory, custom: false })));
+  });
+  custom.forEach((c) => all.push({ name: c.name, desc: c.description, element: GameData.magic[c.element] ? c.element : "custom", tier: c.tier, sub: !!c.subCategory, custom: true }));
+
+  const labelOf = (ek) => (GameData.magic[ek] ? GameData.magic[ek].label : "Custom");
+  const known = new Set(((character && character.knownSpells) || []).map((k) => `${k.name}|${k.element}`));
+  const elements = Object.keys(GameData.magic).concat(["custom"]);
+  let elFilter = "all";
+
+  container.innerHTML = `
+    <details class="magic-core">
+      <summary>Magic Core</summary>
+      ${GameData.magicCore.paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}
+    </details>
+    <div class="chip-row" data-role="chips">
+      <button type="button" class="chip active" data-el="all">All</button>
+      ${elements.map((k) => `<button type="button" class="chip" data-el="${k}" style="--chip-color:var(--${k})">${escapeHtml(labelOf(k))}</button>`).join("")}
+    </div>
+    <div class="spell-filters">
+      <select data-role="tier">
+        <option value="all">All tiers</option>
+        ${GameData.tierOrder.map((t) => `<option value="${t}">${t[0].toUpperCase() + t.slice(1)}</option>`).join("")}
+      </select>
+      <input data-role="search" placeholder="Search spells…" />
+    </div>
+    ${character ? `<label class="roster-toggle-row"><input type="checkbox" data-role="known" /> Show only spells I know</label>` : ""}
+    <div class="element-blurb" data-role="blurb"></div>
+    <div data-role="cards"></div>
+  `;
+
+  const q = (r) => container.querySelector(`[data-role="${r}"]`);
+
+  function draw() {
+    const tier = q("tier").value;
+    const search = q("search").value.trim().toLowerCase();
+    const onlyKnown = q("known") ? q("known").checked : false;
+    q("blurb").textContent = elFilter !== "all" && GameData.magic[elFilter] ? GameData.magic[elFilter].summary : "";
+    const rows = all
+      .filter((sp) => (elFilter === "all" || sp.element === elFilter)
+        && (tier === "all" || sp.tier === tier)
+        && (!search || sp.name.toLowerCase().includes(search))
+        && (!onlyKnown || known.has(`${sp.name}|${sp.element}`)))
+      .sort((a, b) => elements.indexOf(a.element) - elements.indexOf(b.element) || GameData.tierOrder.indexOf(a.tier) - GameData.tierOrder.indexOf(b.tier));
+    q("cards").innerHTML = rows.length ? rows.map((sp) => {
+      const isKnown = known.has(`${sp.name}|${sp.element}`);
+      const tierText = sp.tier === "general" ? "" : ` · ${sp.tier}`;
+      return `
+        <div class="skill-card ${isKnown ? "known" : ""}">
+          <div class="skill-head">
+            <strong>${escapeHtml(sp.name)}${isKnown ? `<span class="known-badge">KNOWN</span>` : ""}</strong>
+            <span class="skill-tag" style="background:var(--${sp.element})">${escapeHtml(labelOf(sp.element))}${tierText}${sp.sub ? " · sub" : ""}${sp.custom ? " · custom" : ""}</span>
+          </div>
+          <p>${escapeHtml(sp.desc || "")}</p>
+        </div>`;
+    }).join("") : `<p class="empty-state">No spells match that filter.</p>`;
+  }
+
+  q("chips").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-el]");
+    if (!b) return;
+    elFilter = b.dataset.el;
+    container.querySelectorAll(".chip").forEach((c) => c.classList.toggle("active", c === b));
+    draw();
+  });
+  q("tier").addEventListener("change", draw);
+  q("search").addEventListener("input", draw);
+  if (q("known")) q("known").addEventListener("change", draw);
+  draw();
 }
 
 async function renderNotesPanel(container) {
@@ -2194,37 +2828,30 @@ async function renderDicePanel(container, character) {
   } else {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = "No roll has been requested yet.";
+    empty.textContent = isDM
+      ? "No roll has been requested for your character."
+      : "No roll requested. You can only roll when the Dice Master asks — and only once per request.";
     container.appendChild(empty);
   }
 
-  const allowed = canRoll();
-  const freeRow = document.createElement("div");
-  freeRow.className = "free-roll-row";
-  freeRow.innerHTML = `
-    <select id="freeRollSides-${container.id}" ${allowed ? "" : "disabled"}>
-      <option value="4">d4</option>
-      <option value="6">d6</option>
-      <option value="8">d8</option>
-      <option value="10">d10</option>
-      <option value="12">d12</option>
-      <option value="20" selected>d20</option>
-      <option value="100">d100</option>
-    </select>
-    <button class="btn" id="freeRollBtn-${container.id}" ${allowed ? "" : "disabled"}>Roll for fun</button>
-  `;
-  container.appendChild(freeRow);
-  if (!allowed && !isDM) {
-    const lockNote = document.createElement("p");
-    lockNote.className = "mini-note lock-note";
-    lockNote.textContent = "The Dice Master hasn't opened the dice to you right now — wait for your turn or a roll request.";
-    container.appendChild(lockNote);
+  // Free rolling is a Dice Master tool only.
+  if (isDM) {
+    const freeRow = document.createElement("div");
+    freeRow.className = "free-roll-row";
+    freeRow.innerHTML = `
+      <select id="freeRollSides-${container.id}">
+        <option value="4">d4</option><option value="6">d6</option><option value="8">d8</option>
+        <option value="10">d10</option><option value="12">d12</option>
+        <option value="20" selected>d20</option><option value="100">d100</option>
+      </select>
+      <button class="btn" id="freeRollBtn-${container.id}">Roll</button>
+    `;
+    container.appendChild(freeRow);
+    document.getElementById(`freeRollBtn-${container.id}`).addEventListener("click", () => {
+      const sides = Number(document.getElementById(`freeRollSides-${container.id}`).value);
+      Dice.freeRoll(sides, room.id, character);
+    });
   }
-  document.getElementById(`freeRollBtn-${container.id}`).addEventListener("click", () => {
-    if (!canRoll()) return;
-    const sides = Number(document.getElementById(`freeRollSides-${container.id}`).value);
-    Dice.freeRoll(sides, room.id, character);
-  });
 }
 
 /* ==================================================================
@@ -2256,13 +2883,47 @@ async function appendStoryLine(message) {
   feed.scrollTop = feed.scrollHeight;
 }
 
+function renderTyping() {
+  const el = document.getElementById("typingIndicator");
+  if (!el) return;
+  const names = [...typingUsers.values()].map((t) => t.name);
+  el.textContent = !names.length ? ""
+    : names.length === 1 ? `${names[0]} is typing…`
+    : names.length === 2 ? `${names[0]} and ${names[1]} are typing…`
+    : "Several people are typing…";
+}
+
+function noteTyping({ characterId, name }) {
+  const prev = typingUsers.get(characterId);
+  if (prev) clearTimeout(prev.timer);
+  const timer = setTimeout(() => clearTyping(characterId), 4000);
+  typingUsers.set(characterId, { name, timer });
+  renderTyping();
+}
+
+function clearTyping(characterId) {
+  const prev = typingUsers.get(characterId);
+  if (prev) clearTimeout(prev.timer);
+  typingUsers.delete(characterId);
+  renderTyping();
+}
+
 function wireComposer() {
+  const input = document.getElementById("composerInput");
+  input.addEventListener("input", () => {
+    if (!canSpeak() || !input.value.trim()) return;
+    const now = Date.now();
+    if (now - lastTypingEmit < 2500) return; // throttle writes
+    lastTypingEmit = now;
+    Sync.emit("typing", { roomId: room.id, characterId: myCharacter.id, name: myCharacter.name });
+  });
+
   document.getElementById("composerForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!canSpeak()) return;
-    const input = document.getElementById("composerInput");
     const text = input.value.trim();
     if (!text) return;
+    lastTypingEmit = 0;
     const msg = await DB.addMessage({
       roomId: room.id,
       authorId: myCharacter.id,
@@ -2276,6 +2937,7 @@ function wireComposer() {
 
   document.getElementById("leaveBtn").addEventListener("click", () => {
     DB.clearSession();
+    typingUsers.clear();
     showLobby();
   });
 }
@@ -2339,10 +3001,6 @@ async function renderRoster() {
         <input type="checkbox" id="chatUnlockToggle" ${room.chatUnlocked ? "checked" : ""} />
         Open chat to everyone
       </label>
-      <label class="roster-toggle-row">
-        <input type="checkbox" id="rollUnlockToggle" ${room.rollUnlocked ? "checked" : ""} />
-        Open dice to everyone
-      </label>
     ` : ""}
   `;
 
@@ -2362,11 +3020,60 @@ async function renderRoster() {
       Sync.emit("chat:lock", { chatUnlocked: e.target.checked });
       refreshComposerLock();
     });
-    document.getElementById("rollUnlockToggle").addEventListener("change", async (e) => {
-      room = await DB.setRollUnlocked(room.id, e.target.checked);
-      Sync.emit("roll:lock", { rollUnlocked: e.target.checked });
-    });
   }
+}
+
+/* ==================================================================
+ * Notifications, typing, resizable right panel
+ * ================================================================== */
+
+function showToast(title, text, onClick) {
+  const host = document.getElementById("toastHost");
+  if (!host) return;
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = `<strong>${escapeHtml(title)}</strong><span>${escapeHtml(text)}</span>`;
+  const remove = () => el.remove();
+  el.addEventListener("click", () => { if (onClick) onClick(); remove(); });
+  host.appendChild(el);
+  setTimeout(remove, 7000);
+}
+
+function notifyPublicNote(note) {
+  const tabBtn = document.querySelector('#rightTabBar button[data-tab="notes"]');
+  const openNotes = () => { if (tabBtn) tabBtn.click(); };
+  if (tabBtn && !tabBtn.classList.contains("active")) tabBtn.classList.add("has-update");
+  showToast("New note from the Dice Master", note && note.text ? note.text : "", openNotes);
+}
+
+function wirePanelResizer() {
+  const handle = document.getElementById("panelResizer");
+  if (!handle || handle.dataset.wired) return;
+  handle.dataset.wired = "1";
+  const root = document.documentElement;
+  try {
+    const saved = Number(localStorage.getItem("vtt:rightWidth"));
+    if (saved) root.style.setProperty("--right-w", `${saved}px`);
+  } catch {}
+  handle.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    handle.classList.add("dragging");
+    document.body.classList.add("resizing");
+    const move = (ev) => {
+      const w = Math.min(Math.max(window.innerWidth - ev.clientX, 260), Math.min(760, window.innerWidth - 360));
+      root.style.setProperty("--right-w", `${w}px`);
+    };
+    const up = () => {
+      handle.classList.remove("dragging");
+      document.body.classList.remove("resizing");
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      try { localStorage.setItem("vtt:rightWidth", parseInt(getComputedStyle(root).getPropertyValue("--right-w"), 10)); } catch {}
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+  });
 }
 
 /* ==================================================================
@@ -2376,6 +3083,7 @@ async function renderRoster() {
 function wireSyncListeners() {
   Sync.on("chat:new", ({ message }) => {
     if (message.roomId !== room.id) return;
+    clearTyping(message.authorId);
     appendStoryLine(message);
   });
 
@@ -2401,18 +3109,40 @@ function wireSyncListeners() {
     const prefix = isDM ? "left" : "player";
     const panel = document.getElementById(`${prefix}DicePanel`);
     if (panel) renderDicePanel(panel, myCharacter);
+    if (isDM && DMTools.refreshPendingRolls) DMTools.refreshPendingRolls();
   });
 
-  Sync.on("note:public", () => {
+  Sync.on("dice:cancel", ({ characterId }) => {
+    if (characterId === myCharacter.id) {
+      const prefix = isDM ? "left" : "player";
+      const panel = document.getElementById(`${prefix}DicePanel`);
+      if (panel) renderDicePanel(panel, myCharacter);
+    }
+    if (isDM && DMTools.refreshPendingRolls) DMTools.refreshPendingRolls();
+  });
+
+  Sync.on("typing", (p) => {
+    if (p.roomId !== room.id || p.characterId === myCharacter.id) return;
+    noteTyping(p);
+  });
+
+  Sync.on("spell:new", () => {
+    const prefix = isDM ? "left" : "player";
+    renderSpellsPanel(document.getElementById(`${prefix}SpellsPanel`), myCharacter);
+    if (isDM && DMTools.refreshSpellbook) DMTools.refreshSpellbook();
+  });
+
+  Sync.on("note:public", ({ note }) => {
     const prefix = isDM ? "left" : "player";
     const panel = document.getElementById(`${prefix}NotesPanel`);
     if (panel) renderNotesPanel(panel);
+    if (!isDM) notifyPublicNote(note);
   });
 
   Sync.on("skill:new", () => {
     const prefix = isDM ? "left" : "player";
-    const panel = document.getElementById(`${prefix}ConditionPanel`);
-    if (panel) renderConditionPanel(panel, myCharacter);
+    const panel = document.getElementById(`${prefix}SkillsPanel`);
+    if (panel) renderSkillsPanel(panel, myCharacter);
     if (isDM && typeof DMTools !== "undefined" && DMTools.refreshSkillLib) DMTools.refreshSkillLib();
   });
 
@@ -2491,16 +3221,24 @@ const DMTools = (() => {
       body: `This is different from Classes. A "skill" here isn't granted to one player directly — instead you define a rule ("Stealth 8+ unlocks Wind Cutters") once, and it applies to the whole table automatically: any player whose Stealth reaches 8 sees it appear on their own Condition tab with no further action from you. Use this for abilities that should reward raising a stat, rather than a one-off item you hand to a specific person.`,
     },
     {
-      title: "Dice — force a roll",
-      body: `Pick a player, a die size, and an optional reason ("Stealth check"), hit "Send roll request." It appears on that player's Dice tab immediately; once they roll, the result posts to the story feed automatically. This works regardless of whose turn it is or whether chat/dice are locked — a DM request always gets through.`,
+      title: "Dice — request, cancel or force a roll",
+      body: `Pick a player, a die size and an optional reason, then either <strong>Send roll request</strong> (it appears on their Dice tab; they can roll it exactly once) or <strong>Force roll now</strong> (the roll happens instantly and posts to the story feed). Every unanswered request is listed under "Pending requests" with <strong>Cancel</strong> (removes it from the player's screen) and <strong>Force</strong> (rolls it for them). Players can only roll when you request it — there is no free rolling for them.`,
     },
     {
-      title: "Spells & Skill Lib — read-only reference",
-      body: `Spells lets you browse and filter the full spell list by element/tier/name. Skill Lib shows the intellectual skills, sword style descriptions, and the mastery ladder, plus the custom skills you've defined. Neither of these tabs changes anything about a player by itself — use Classes (for spells/sword style) or Skills (for thresholds) to actually apply them.`,
+      title: "Spells — filterable cards and custom spells",
+      body: `The Spells tab shows every spell as a card you can filter by element chip, tier, or name. Use "Add a custom spell" at the top to create your own for this campaign: pick an element (or Custom), a tier, and a description. It appears for everyone on their Spells tab, and you can grant it from the Classes tab like any other spell. Skill Lib is a read-only reference for intellectual skills and sword styles.`,
     },
     {
-      title: "The \"Table\" button — turns, chat, and dice locks",
-      body: `Up in the top bar, the "Table" button (next to your role pill) shows every player. Click a name to make it their turn — that unlocks the chat box and free dice roll just for them, shown with a green dot. Click the same name again to clear the turn for everyone. The two checkboxes below the roster ("Open chat to everyone" / "Open dice to everyone") bypass turns entirely if you want a free-for-all moment.`,
+      title: "Character sheets and auto-granted skills",
+      body: `Every player builds a full sheet when joining: race (with a Demi-Human type), a rolled height (one roll plus 3 re-rolls) and attributes out of 20. Races give free bonuses and cap some attributes. Skills unlock automatically from attributes, race and sword style, and starting spells come from race plus Intelligence/Wisdom.`,
+    },
+    {
+      title: "Notes and notifications",
+      body: `Public notes pop up as a notification for every player and put a marker on their DM Notes tab. You can also drag the left edge of this right-hand panel to resize it.`,
+    },
+    {
+      title: "The \"Table\" button — turns and chat",
+      body: `Up in the top bar, the "Table" button shows every player. Click a name to make it their turn — that unlocks the chat box for them, shown with a green dot. Click the same name again to clear the turn. The checkbox below the roster ("Open chat to everyone") bypasses turns for a free-for-all moment.`,
     },
   ];
 
@@ -2635,11 +3373,12 @@ const DMTools = (() => {
 
     const hpPct = Math.max(0, Math.min(100, (target.hp.current / target.hp.max) * 100));
     const customSkills = await DB.getCustomSkills(roomRef.id);
-    const unlocked = customSkills.filter((s) => (target.stats[s.thresholdAttribute] || 0) >= s.thresholdValue);
+    const skillGroups = computeSkills(target, customSkills);
     const knownSpells = target.knownSpells || [];
 
     body.innerHTML = `
       <div class="overview-name">${escapeHtml(target.name)}${target.isDM ? " (you)" : ""}</div>
+      <div class="sheet-sub">${escapeHtml(sheetSummary(target))}</div>
 
       <div class="hp-block">
         <div class="hp-numbers"><span>HP</span><span>${target.hp.current} / ${target.hp.max}</span></div>
@@ -2676,14 +3415,8 @@ const DMTools = (() => {
         ${knownSpells.length ? knownSpells.map((s) => `<span class="status-chip">${escapeHtml(s.name)} <span style="color:var(--text-lo);">(${escapeHtml(s.element)}, ${escapeHtml(s.tier)})</span></span>`).join("") : `<span style="color:var(--text-lo); font-size:12.5px;">None granted — use the Classes tab.</span>`}
       </div>
 
-      <label>Unlocked skills</label>
-      <div>
-        ${unlocked.length ? unlocked.map((s) => `
-          <div class="skill-card">
-            <div class="skill-head"><strong>${escapeHtml(s.name)}</strong><span class="skill-tag" style="background:var(--mana)">${s.thresholdAttribute} ${s.thresholdValue}+</span></div>
-            <p>${escapeHtml(s.description)}</p>
-          </div>`).join("") : `<p class="empty-state">None yet — either raise an attribute past a threshold, or define one on the Skills tab.</p>`}
-      </div>
+      <label>Skills</label>
+      ${skillGroupsHtml(skillGroups)}
     `;
   }
 
@@ -2796,7 +3529,7 @@ const DMTools = (() => {
           <span class="stat-name">${attr}</span>
           <div class="stepper">
             <button type="button" data-attr="${attr}" data-dir="-1">−</button>
-            <span class="val" id="dmval-${attr}">${target.stats[attr]}</span>
+            <span class="val" id="dmval-${attr}">${target.stats[attr] || 0}</span>
             <button type="button" data-attr="${attr}" data-dir="1">+</button>
           </div>
         </div>`).join("")}
@@ -2816,7 +3549,7 @@ const DMTools = (() => {
       btn.addEventListener("click", () => {
         const attr = btn.dataset.attr;
         const dir = Number(btn.dataset.dir);
-        const next = target.stats[attr] + dir;
+        const next = (target.stats[attr] || 0) + dir;
         if (next < 0 || next > GameData.attributeCap) return;
         target.stats[attr] = next;
         document.getElementById(`dmval-${attr}`).textContent = next;
@@ -2914,14 +3647,9 @@ const DMTools = (() => {
         <div class="dm-field-row">
           <select id="classSpellElement">
             ${Object.keys(GameData.magic).map((k) => `<option value="${k}">${GameData.magic[k].label}</option>`).join("")}
+            <option value="custom">Custom / Other</option>
           </select>
-          <select id="classSpellTier">
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-            <option value="unique">Unique</option>
-            <option value="ultimate">Ultimate</option>
-          </select>
+<select id="classSpellTier"></select>
         </div>
         <div class="dm-field-row">
           <select id="classSpellName"></select>
@@ -2933,13 +3661,23 @@ const DMTools = (() => {
       </div>
     `;
 
-    function refreshSpellNameOptions() {
+    async function refreshSpellNameOptions() {
       const element = document.getElementById("classSpellElement").value;
-      const tier = document.getElementById("classSpellTier").value;
-      const spells = (GameData.magic[element] && GameData.magic[element].tiers[tier]) || [];
+      const tierSel = document.getElementById("classSpellTier");
+      const customSpells = (await DB.getCustomSpells(roomRef.id)).filter((c) => (GameData.magic[c.element] ? c.element : "custom") === element);
+      const builtinTiers = GameData.magic[element] ? Object.keys(GameData.magic[element].tiers) : [];
+      const tiers = GameData.tierOrder.filter((t) => builtinTiers.includes(t) || customSpells.some((c) => c.tier === t));
+      const prev = tierSel.value;
+      tierSel.innerHTML = tiers.length
+        ? tiers.map((t) => `<option value="${t}">${t[0].toUpperCase() + t.slice(1)}</option>`).join("")
+        : `<option disabled>No spells</option>`;
+      if (tiers.includes(prev)) tierSel.value = prev;
+      const tier = tierSel.value;
+      const names = ((GameData.magic[element] && GameData.magic[element].tiers[tier]) || []).map((sp) => sp.name)
+        .concat(customSpells.filter((c) => c.tier === tier).map((c) => c.name));
       const nameSelect = document.getElementById("classSpellName");
-      nameSelect.innerHTML = spells.length
-        ? spells.map((s) => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join("")
+      nameSelect.innerHTML = names.length
+        ? names.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("")
         : `<option disabled>No spells at this tier</option>`;
     }
     document.getElementById("classSpellElement").addEventListener("change", refreshSpellNameOptions);
@@ -3011,7 +3749,7 @@ const DMTools = (() => {
     const el = document.getElementById("dmDiceTab");
     el.innerHTML = `
       <div class="dm-section">
-        <h3>Force a roll</h3>
+        <h3>Request or force a roll</h3>
         <div class="dm-target-picker">${await targetSelectHtml("diceTarget")}</div>
         <div class="dm-field-row">
           <select id="diceSides">
@@ -3021,21 +3759,78 @@ const DMTools = (() => {
           </select>
           <input id="diceLabel" placeholder="Reason (optional) — e.g. Stealth check" />
         </div>
-        <button class="btn btn-primary btn-block" id="diceRequestBtn" style="margin-top:10px;">Send roll request</button>
-        <p class="mini-note">The die appears on that player's Dice tab immediately, and the result posts to the story feed once they roll.</p>
+        <div class="dm-field-row" style="margin-top:10px;">
+          <button class="btn btn-primary" id="diceRequestBtn">Send roll request</button>
+          <button class="btn" id="diceForceBtn">Force roll now</button>
+        </div>
+        <p class="mini-note">A request lets the player roll once. "Force roll now" rolls instantly for them with no button press.</p>
+      </div>
+      <div class="dm-section">
+        <h3>Pending requests</h3>
+        <div id="dicePendingList"></div>
       </div>
     `;
+    function params() {
+      return {
+        sides: Number(document.getElementById("diceSides").value),
+        label: document.getElementById("diceLabel").value.trim(),
+      };
+    }
     document.getElementById("diceRequestBtn").addEventListener("click", async () => {
       const target = await currentTarget("diceTarget");
-      const sides = Number(document.getElementById("diceSides").value);
-      const label = document.getElementById("diceLabel").value.trim();
+      if (!target) return;
+      const { sides, label } = params();
       const request = await DB.createDiceRequest({ roomId: roomRef.id, targetCharacterId: target.id, requestedBy: roomRef.dmUserId, sides, label });
       Sync.emit("dice:request", { request, characterId: target.id });
       announce(`The Dice Master requested a d${sides} roll from ${target.name}${label ? ` (${label})` : ""}.`);
+      renderPendingRolls();
+    });
+    document.getElementById("diceForceBtn").addEventListener("click", async () => {
+      const target = await currentTarget("diceTarget");
+      if (!target) return;
+      const { sides, label } = params();
+      const request = await DB.createDiceRequest({ roomId: roomRef.id, targetCharacterId: target.id, requestedBy: roomRef.dmUserId, sides, label });
+      await Dice.forceRoll(request, target);
+    });
+    renderPendingRolls();
+  }
+
+  async function renderPendingRolls() {
+    const box = document.getElementById("dicePendingList");
+    if (!box) return;
+    const [pending, chars] = await Promise.all([DB.getPendingDiceRequestsByRoom(roomRef.id), characters()]);
+    const nameOf = (id) => (chars.find((c) => c.id === id) || {}).name || "Unknown";
+    box.innerHTML = pending.length ? pending.map((r) => `
+      <div class="pending-roll">
+        <div><strong>${escapeHtml(nameOf(r.targetCharacterId))}</strong> — d${r.sides}${r.label ? ` (${escapeHtml(r.label)})` : ""}</div>
+        <div class="pending-actions">
+          <button class="btn btn-ghost" data-force="${r.id}">Force</button>
+          <button class="btn btn-danger" data-cancel="${r.id}">Cancel</button>
+        </div>
+      </div>`).join("") : `<p class="empty-state">No pending roll requests.</p>`;
+
+    box.querySelectorAll("button[data-cancel]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const r = pending.find((p) => p.id === btn.dataset.cancel);
+        const done = await DB.cancelDiceRequest(r.id);
+        if (done) {
+          Sync.emit("dice:cancel", { requestId: r.id, characterId: r.targetCharacterId });
+          announce(`The Dice Master cancelled the roll request for ${nameOf(r.targetCharacterId)}.`);
+        }
+        renderPendingRolls();
+      });
+    });
+    box.querySelectorAll("button[data-force]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const r = pending.find((p) => p.id === btn.dataset.force);
+        const ch = chars.find((c) => c.id === r.targetCharacterId);
+        if (ch) await Dice.forceRoll(r, ch);
+        renderPendingRolls();
+      });
     });
   }
 
-  /* ---------------------------------------------------------- Skills */
+/* ---------------------------------------------------------- Skills */
   async function renderSkillsTab() {
     const el = document.getElementById("dmSkillsTab");
     const allSkills = await DB.getCustomSkills(roomRef.id);
@@ -3085,67 +3880,52 @@ const DMTools = (() => {
    */
   async function renderSpellbookTab() {
     const el = document.getElementById("dmSpellbookTab");
-    const elements = Object.keys(GameData.magic);
+    const elementOptions = Object.keys(GameData.magic).map((k) => `<option value="${k}">${GameData.magic[k].label}</option>`).join("") + `<option value="custom">Custom / Other</option>`;
     el.innerHTML = `
       <div class="dm-section">
-        <h3>Spellbook</h3>
+        <h3>Add a custom spell</h3>
+        <input id="newSpellName" placeholder="Spell name" style="margin-bottom:8px;" />
+        <textarea class="notes-box" id="newSpellDesc" placeholder="What it does" style="min-height:60px; margin-bottom:8px;"></textarea>
         <div class="dm-field-row">
-          <select id="spellElementFilter">
-            <option value="all">All elements</option>
-            ${elements.map((k) => `<option value="${k}">${GameData.magic[k].label}</option>`).join("")}
-          </select>
-          <select id="spellTierFilter">
-            <option value="all">All tiers</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-            <option value="unique">Unique</option>
-            <option value="ultimate">Ultimate</option>
-          </select>
+          <select id="newSpellElement">${elementOptions}</select>
+          <select id="newSpellTier">${GameData.tierOrder.map((t) => `<option value="${t}">${t[0].toUpperCase() + t.slice(1)}</option>`).join("")}</select>
         </div>
-        <input id="spellSearch" placeholder="Search spell names…" style="margin-bottom:8px;" />
-        <div id="spellList"></div>
+        <label class="roster-toggle-row"><input type="checkbox" id="newSpellSub" /> Sub category (needs talent in two or more elements)</label>
+        <button class="btn btn-primary btn-block" id="newSpellBtn">Add spell</button>
+        <p class="mini-note">Custom spells show up for every player on their Spells tab and can be granted from the Classes tab.</p>
+      </div>
+      <div class="dm-section">
+        <h3>Spellbook</h3>
+        <div id="dmSpellBrowser"></div>
       </div>
     `;
-    document.getElementById("spellElementFilter").addEventListener("change", renderSpellList);
-    document.getElementById("spellTierFilter").addEventListener("change", renderSpellList);
-    document.getElementById("spellSearch").addEventListener("input", renderSpellList);
-    renderSpellList();
+    document.getElementById("newSpellBtn").addEventListener("click", async () => {
+      const name = document.getElementById("newSpellName").value.trim();
+      if (!name) return;
+      const spell = await DB.addCustomSpell({
+        roomId: roomRef.id,
+        name,
+        description: document.getElementById("newSpellDesc").value.trim(),
+        element: document.getElementById("newSpellElement").value,
+        tier: document.getElementById("newSpellTier").value,
+        subCategory: document.getElementById("newSpellSub").checked,
+      });
+      Sync.emit("spell:new", { spell });
+      announce(`The Dice Master added a new spell: ${name}.`);
+    });
+    await renderSpellBrowser(document.getElementById("dmSpellBrowser"), { character: null });
   }
 
-  function renderSpellList() {
-    const box = document.getElementById("spellList");
-    if (!box) return;
-    const elFilter = document.getElementById("spellElementFilter").value;
-    const tierFilter = document.getElementById("spellTierFilter").value;
-    const search = document.getElementById("spellSearch").value.trim().toLowerCase();
-
-    const elementKeys = elFilter === "all" ? Object.keys(GameData.magic) : [elFilter];
-    const tierKeys = tierFilter === "all" ? ["beginner", "intermediate", "advanced", "unique", "ultimate"] : [tierFilter];
-
-    let cards = "";
-    elementKeys.forEach((ek) => {
-      const element = GameData.magic[ek];
-      if (!element) return;
-      tierKeys.forEach((tk) => {
-        const spells = element.tiers[tk] || [];
-        spells.forEach((s) => {
-          if (search && !s.name.toLowerCase().includes(search)) return;
-          cards += `
-            <div class="skill-card">
-              <div class="skill-head">
-                <strong>${escapeHtml(s.name)}</strong>
-                <span class="skill-tag" style="background:var(--${ek})">${element.label} · ${tk}${s.subCategory ? " · sub" : ""}</span>
-              </div>
-              <p>${escapeHtml(s.desc)}</p>
-            </div>`;
-        });
-      });
-    });
-    box.innerHTML = cards || `<p class="empty-state">No spells match that filter.</p>`;
+  async function refreshSpellbook() {
+    const box = document.getElementById("dmSpellBrowser");
+    if (box) await renderSpellBrowser(box, { character: null });
   }
 
   /* ------------------------------------------------------ Skill Library
+   * DM-only reference over intellectual skills, sword styles and the
+   * room's custom skills.
+   */
+/* ------------------------------------------------------ Skill Library
    * DM-only reference browser over the static intellectual skills and
    * sword styles from GameData, plus the room's live custom-skill list
    * (same data already shown on the Skills tab, surfaced here too for
@@ -3214,7 +3994,7 @@ const DMTools = (() => {
     });
   }
 
-  return { render, onCharacterUpdate, refreshSkillLib: renderSkillLibTab };
+  return { render, onCharacterUpdate, refreshSkillLib: renderSkillLibTab, refreshPendingRolls: renderPendingRolls, refreshSpellbook };
 })();
 
 // wireTabBar() is defined once in room.js and reused here.
