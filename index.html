@@ -807,6 +807,13 @@ body.resizing { user-select: none; cursor: col-resize; }
 
 @media (max-width: 980px) { .panel-resizer { display: none; } }
 
+.chat-image { display: block; max-width: 100%; max-height: 320px; margin-top: 6px; border: 1px solid rgba(0,0,0,0.25); border-radius: var(--radius-page); cursor: zoom-in; }
+.image-preview { display: flex; align-items: center; gap: 10px; padding: 8px 20px; background: var(--ink-panel); border-top: 1px solid var(--ink-line); font-size: 12.5px; color: var(--text-lo); }
+.image-preview img { height: 56px; border-radius: 4px; border: 1px solid var(--ink-line); }
+.feed-drop { outline: 3px dashed var(--gold); outline-offset: -8px; }
+.lightbox { position: fixed; inset: 0; background: rgba(5,3,4,0.88); display: flex; align-items: center; justify-content: center; z-index: 300; cursor: zoom-out; padding: 24px; }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
+
 .hidden { display: none !important; }
 
 @media (max-width: 980px) {
@@ -1014,7 +1021,10 @@ body.resizing { user-select: none; cursor: col-resize; }
     <section class="story-column">
       <div class="story-feed" id="storyFeed"></div>
       <div class="typing-indicator" id="typingIndicator"></div>
+      <div class="image-preview hidden" id="imagePreview"></div>
       <form class="composer" id="composerForm">
+        <button class="btn" type="button" id="attachBtn" title="Attach an image (or paste / drop one)">📎</button>
+        <input type="file" id="imageInput" accept="image/*" class="hidden" />
         <input id="composerInput" placeholder="Say something to the table…" autocomplete="off" />
         <button class="btn btn-primary" type="submit">Send</button>
       </form>
@@ -2879,8 +2889,77 @@ async function appendStoryLine(message) {
     const nameClass = authorChar && authorChar.isDM ? "who dm-name" : "who";
     line.innerHTML = `<span class="${nameClass}">${escapeHtml(message.authorName)}</span><span class="body">${escapeHtml(message.text)}</span>`;
   }
+  if (message.meta && message.meta.image) {
+    const img = document.createElement("img");
+    img.className = "chat-image";
+    img.src = message.meta.image;
+    img.alt = "Shared image";
+    img.addEventListener("click", () => openLightbox(message.meta.image));
+    img.addEventListener("load", () => { feed.scrollTop = feed.scrollHeight; });
+    line.appendChild(img);
+  }
   feed.appendChild(line);
   feed.scrollTop = feed.scrollHeight;
+}
+
+/* ==================================================================
+ * Image attachments (paste, attach button, drag & drop)
+ * ================================================================== */
+
+let pendingImage = null;
+
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let max = 1400, quality = 0.82;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const data = canvas.toDataURL("image/jpeg", quality);
+        if (data.length < 600000) return resolve(data); // stays well under Firestore's 1 MiB doc limit
+        max = Math.round(max * 0.8);
+        quality = Math.max(0.5, quality - 0.06);
+      }
+      reject(new Error("Image is too large to send."));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Couldn't read that image.")); };
+    img.src = url;
+  });
+}
+
+function renderImagePreview() {
+  const box = document.getElementById("imagePreview");
+  if (!pendingImage) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+  box.classList.remove("hidden");
+  box.innerHTML = `<img src="${pendingImage}" alt="" /><span>Image ready to send</span><button type="button" class="btn btn-ghost" id="imageRemoveBtn">Remove</button>`;
+  document.getElementById("imageRemoveBtn").onclick = () => { pendingImage = null; renderImagePreview(); };
+}
+
+async function attachImageFile(file) {
+  if (!file || !file.type.startsWith("image/") || !canSpeak()) return;
+  try {
+    pendingImage = await compressImage(file);
+    renderImagePreview();
+  } catch (err) {
+    showToast("Image not attached", err.message);
+  }
+}
+
+function openLightbox(src) {
+  const box = document.createElement("div");
+  box.className = "lightbox";
+  box.innerHTML = `<img src="${src}" alt="" />`;
+  box.addEventListener("click", () => box.remove());
+  document.body.appendChild(box);
 }
 
 function renderTyping() {
@@ -2910,6 +2989,28 @@ function clearTyping(characterId) {
 
 function wireComposer() {
   const input = document.getElementById("composerInput");
+
+  document.getElementById("attachBtn").addEventListener("click", () => document.getElementById("imageInput").click());
+  document.getElementById("imageInput").addEventListener("change", (e) => {
+    attachImageFile(e.target.files[0]);
+    e.target.value = "";
+  });
+  document.addEventListener("paste", (e) => {
+    if (document.getElementById("appView").classList.contains("hidden")) return;
+    const item = [...(e.clipboardData ? e.clipboardData.items : [])].find((i) => i.type.startsWith("image/"));
+    if (!item) return;
+    e.preventDefault();
+    attachImageFile(item.getAsFile());
+  });
+  const feed = document.getElementById("storyFeed");
+  feed.addEventListener("dragover", (e) => { e.preventDefault(); feed.classList.add("feed-drop"); });
+  feed.addEventListener("dragleave", () => feed.classList.remove("feed-drop"));
+  feed.addEventListener("drop", (e) => {
+    e.preventDefault();
+    feed.classList.remove("feed-drop");
+    attachImageFile([...e.dataTransfer.files].find((f) => f.type.startsWith("image/")));
+  });
+
   input.addEventListener("input", () => {
     if (!canSpeak() || !input.value.trim()) return;
     const now = Date.now();
@@ -2922,17 +3023,21 @@ function wireComposer() {
     e.preventDefault();
     if (!canSpeak()) return;
     const text = input.value.trim();
-    if (!text) return;
+    if (!text && !pendingImage) return;
     lastTypingEmit = 0;
+    const image = pendingImage;
+    pendingImage = null;
+    renderImagePreview();
+    input.value = "";
     const msg = await DB.addMessage({
       roomId: room.id,
       authorId: myCharacter.id,
       authorName: myCharacter.name,
       type: "chat",
       text,
+      meta: image ? { image } : null,
     });
     Sync.emit("chat:new", { message: msg });
-    input.value = "";
   });
 
   document.getElementById("leaveBtn").addEventListener("click", () => {
@@ -2953,6 +3058,8 @@ function refreshComposerLock() {
   const allowed = canSpeak();
   input.disabled = !allowed;
   form.querySelector("button[type=submit]").disabled = !allowed;
+  const attach = document.getElementById("attachBtn");
+  if (attach) attach.disabled = !allowed;
   input.placeholder = allowed
     ? "Say something to the table…"
     : isMyTurn()
