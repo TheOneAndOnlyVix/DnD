@@ -814,6 +814,27 @@ body.resizing { user-select: none; cursor: col-resize; }
 .lightbox { position: fixed; inset: 0; background: rgba(5,3,4,0.88); display: flex; align-items: center; justify-content: center; z-index: 300; cursor: zoom-out; padding: 24px; }
 .lightbox img { max-width: 100%; max-height: 100%; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
 
+.channel-bar { display: flex; gap: 2px; padding: 8px 12px 0; background: var(--ink-panel); border-bottom: 1px solid var(--ink-line); }
+.channel-bar button {
+  background: transparent; border: 1px solid transparent; border-bottom: none; color: var(--text-lo);
+  padding: 7px 16px; font-family: var(--font-display); font-weight: 600; font-size: 13px;
+  border-radius: var(--radius-ui) var(--radius-ui) 0 0;
+}
+.channel-bar button.active { color: var(--gold-bright); background: var(--ink); border-color: var(--ink-line); }
+.channel-bar button.unread::after {
+  content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 6px;
+  border-radius: 50%; background: var(--blood-bright); box-shadow: 0 0 6px var(--blood-bright);
+}
+.table-feed {
+  flex: 1; overflow-y: auto; padding: 18px 20px; background: var(--ink-panel-raised); color: var(--text-hi);
+}
+.table-feed .story-line { max-width: none; margin-bottom: 10px; }
+.table-feed .story-line .who { color: var(--gold-bright); }
+.table-feed .story-line .who.dm-name { color: var(--blood-bright); }
+.table-feed .story-line .time { margin-left: 8px; font-size: 11px; color: var(--text-lo); }
+.table-feed .chat-image { border-color: var(--ink-line); }
+.table-hint { text-align: center; font-size: 12px; color: var(--text-lo); font-style: italic; margin-bottom: 14px; }
+
 .hidden { display: none !important; }
 
 @media (max-width: 980px) {
@@ -1019,7 +1040,12 @@ body.resizing { user-select: none; cursor: col-resize; }
 
     <!-- CENTER — shared story / chat feed -->
     <section class="story-column">
+      <div class="channel-bar" id="channelBar">
+        <button type="button" class="active" data-channel="story">Story</button>
+        <button type="button" data-channel="table">Player Chat</button>
+      </div>
       <div class="story-feed" id="storyFeed"></div>
+      <div class="table-feed hidden" id="tableFeed"></div>
       <div class="typing-indicator" id="typingIndicator"></div>
       <div class="image-preview hidden" id="imagePreview"></div>
       <form class="composer" id="composerForm">
@@ -1836,9 +1862,10 @@ const DB = {
   },
 
   /* -------------------------------------------------------- messages */
-  async addMessage({ roomId, authorId, authorName, type, text, meta }) {
+  async addMessage({ roomId, authorId, authorName, type, text, meta, channel }) {
     const data = {
       roomId,
+      channel: channel || "story", // 'story' (main feed) | 'table' (free player chat)
       authorId,
       authorName,
       type: type || "chat", // 'chat' | 'system' | 'roll' | 'whisper'
@@ -2343,6 +2370,7 @@ const STAT_COLORS = {
 
 let session, user, room, myCharacter, isDM;
 
+let activeChannel = "story";
 const typingUsers = new Map();
 let lastTypingEmit = 0;
 let syncWired = false;
@@ -2396,6 +2424,11 @@ function isMyTurn() {
 
 function canSpeak() {
   return isDM || isMyTurn() || !!room.chatUnlocked;
+}
+
+/** Story chat follows turns/DM lock; Player Chat is always open to everyone. */
+function canSpeakIn(channel) {
+  return channel === "table" ? true : canSpeak();
 }
 
 function canRoll() {
@@ -2619,6 +2652,8 @@ function showAppView() {
 
   document.getElementById("dmTutorialBtn").classList.toggle("hidden", !isDM);
 
+  activeChannel = "story";
+  setChannel("story");
   renderStoryFeed();
   if (!composerWired) { wireComposer(); composerWired = true; }
   renderRoster();
@@ -2868,18 +2903,25 @@ async function renderDicePanel(container, character) {
  * Story feed / chat
  * ================================================================== */
 
+const channelOf = (m) => m.channel || "story";
+const feedEl = (channel) => document.getElementById(channel === "table" ? "tableFeed" : "storyFeed");
+
 async function renderStoryFeed() {
-  const feed = document.getElementById("storyFeed");
-  feed.innerHTML = "";
+  const story = feedEl("story");
+  const table = feedEl("table");
+  story.innerHTML = "";
+  table.innerHTML = `<div class="table-hint">Player Chat — talk freely, out of character. Not part of the story.</div>`;
   const messages = await DB.getMessagesByRoom(room.id);
   for (const message of messages) {
     await appendStoryLine(message);
   }
-  feed.scrollTop = feed.scrollHeight;
+  story.scrollTop = story.scrollHeight;
+  table.scrollTop = table.scrollHeight;
 }
 
 async function appendStoryLine(message) {
-  const feed = document.getElementById("storyFeed");
+  const channel = channelOf(message);
+  const feed = feedEl(channel);
   const line = document.createElement("div");
   line.className = `story-line ${message.type}`;
   if (message.type === "system") {
@@ -2887,7 +2929,9 @@ async function appendStoryLine(message) {
   } else {
     const authorChar = message.authorId !== "system" ? await DB.getCharacter(message.authorId) : null;
     const nameClass = authorChar && authorChar.isDM ? "who dm-name" : "who";
-    line.innerHTML = `<span class="${nameClass}">${escapeHtml(message.authorName)}</span><span class="body">${escapeHtml(message.text)}</span>`;
+    const time = channel === "table" && message.createdAt
+      ? `<span class="time">${new Date(message.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>` : "";
+    line.innerHTML = `<span class="${nameClass}">${escapeHtml(message.authorName)}</span><span class="body">${escapeHtml(message.text)}</span>${time}`;
   }
   if (message.meta && message.meta.image) {
     const img = document.createElement("img");
@@ -2900,6 +2944,22 @@ async function appendStoryLine(message) {
   }
   feed.appendChild(line);
   feed.scrollTop = feed.scrollHeight;
+}
+
+function setChannel(channel) {
+  activeChannel = channel;
+  document.querySelectorAll("#channelBar button").forEach((b) => {
+    const on = b.dataset.channel === channel;
+    b.classList.toggle("active", on);
+    if (on) b.classList.remove("unread");
+  });
+  feedEl("story").classList.toggle("hidden", channel !== "story");
+  feedEl("table").classList.toggle("hidden", channel !== "table");
+  feedEl(channel).scrollTop = feedEl(channel).scrollHeight;
+  refreshComposerLock();
+  renderTyping();
+  const input = document.getElementById("composerInput");
+  if (input && !input.disabled) input.focus();
 }
 
 /* ==================================================================
@@ -2945,7 +3005,7 @@ function renderImagePreview() {
 }
 
 async function attachImageFile(file) {
-  if (!file || !file.type.startsWith("image/") || !canSpeak()) return;
+  if (!file || !file.type.startsWith("image/") || !canSpeakIn(activeChannel)) return;
   try {
     pendingImage = await compressImage(file);
     renderImagePreview();
@@ -2965,18 +3025,18 @@ function openLightbox(src) {
 function renderTyping() {
   const el = document.getElementById("typingIndicator");
   if (!el) return;
-  const names = [...typingUsers.values()].map((t) => t.name);
+  const names = [...typingUsers.values()].filter((t) => t.channel === activeChannel).map((t) => t.name);
   el.textContent = !names.length ? ""
     : names.length === 1 ? `${names[0]} is typing…`
     : names.length === 2 ? `${names[0]} and ${names[1]} are typing…`
     : "Several people are typing…";
 }
 
-function noteTyping({ characterId, name }) {
+function noteTyping({ characterId, name, channel }) {
   const prev = typingUsers.get(characterId);
   if (prev) clearTimeout(prev.timer);
   const timer = setTimeout(() => clearTyping(characterId), 4000);
-  typingUsers.set(characterId, { name, timer });
+  typingUsers.set(characterId, { name, timer, channel: channel || "story" });
   renderTyping();
 }
 
@@ -3002,26 +3062,33 @@ function wireComposer() {
     e.preventDefault();
     attachImageFile(item.getAsFile());
   });
-  const feed = document.getElementById("storyFeed");
-  feed.addEventListener("dragover", (e) => { e.preventDefault(); feed.classList.add("feed-drop"); });
-  feed.addEventListener("dragleave", () => feed.classList.remove("feed-drop"));
-  feed.addEventListener("drop", (e) => {
-    e.preventDefault();
-    feed.classList.remove("feed-drop");
-    attachImageFile([...e.dataTransfer.files].find((f) => f.type.startsWith("image/")));
+  ["storyFeed", "tableFeed"].forEach((id) => {
+    const feed = document.getElementById(id);
+    feed.addEventListener("dragover", (e) => { e.preventDefault(); feed.classList.add("feed-drop"); });
+    feed.addEventListener("dragleave", () => feed.classList.remove("feed-drop"));
+    feed.addEventListener("drop", (e) => {
+      e.preventDefault();
+      feed.classList.remove("feed-drop");
+      attachImageFile([...e.dataTransfer.files].find((f) => f.type.startsWith("image/")));
+    });
+  });
+  document.getElementById("channelBar").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-channel]");
+    if (b) setChannel(b.dataset.channel);
   });
 
   input.addEventListener("input", () => {
-    if (!canSpeak() || !input.value.trim()) return;
+    if (!canSpeakIn(activeChannel) || !input.value.trim()) return;
     const now = Date.now();
     if (now - lastTypingEmit < 2500) return; // throttle writes
     lastTypingEmit = now;
-    Sync.emit("typing", { roomId: room.id, characterId: myCharacter.id, name: myCharacter.name });
+    Sync.emit("typing", { roomId: room.id, characterId: myCharacter.id, name: myCharacter.name, channel: activeChannel });
   });
 
   document.getElementById("composerForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!canSpeak()) return;
+    if (!canSpeakIn(activeChannel)) return;
+    const channel = activeChannel;
     const text = input.value.trim();
     if (!text && !pendingImage) return;
     lastTypingEmit = 0;
@@ -3036,6 +3103,7 @@ function wireComposer() {
       type: "chat",
       text,
       meta: image ? { image } : null,
+      channel,
     });
     Sync.emit("chat:new", { message: msg });
   });
@@ -3055,14 +3123,14 @@ function refreshComposerLock() {
   const input = document.getElementById("composerInput");
   const form = document.getElementById("composerForm");
   if (!input || !form) return;
-  const allowed = canSpeak();
+  const allowed = canSpeakIn(activeChannel);
   input.disabled = !allowed;
   form.querySelector("button[type=submit]").disabled = !allowed;
   const attach = document.getElementById("attachBtn");
   if (attach) attach.disabled = !allowed;
-  input.placeholder = allowed
-    ? "Say something to the table…"
-    : isMyTurn()
+  input.placeholder = activeChannel === "table"
+    ? "Chat with the other players…"
+    : allowed
       ? "Say something to the table…"
       : "Wait for your turn, or for the Dice Master to open the floor…";
 }
@@ -3192,6 +3260,11 @@ function wireSyncListeners() {
     if (message.roomId !== room.id) return;
     clearTyping(message.authorId);
     appendStoryLine(message);
+    const ch = channelOf(message);
+    if (ch !== activeChannel && message.authorId !== myCharacter.id) {
+      const tab = document.querySelector(`#channelBar button[data-channel="${ch}"]`);
+      if (tab) tab.classList.add("unread");
+    }
   });
 
   Sync.on("character:update", ({ character }) => {
