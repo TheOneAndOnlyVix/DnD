@@ -1777,14 +1777,18 @@ const DB = {
 
   /**
    * Turn / chat-lock state lives directly on the room document:
-   *   activeCharacterId  — id of the character whose turn it is, or null
+   *   activeCharacterIds — ids of every character whose turn it is (any number, may be empty)
    *   chatUnlocked       — true if the DM has opened chat to everyone
    *   rollUnlocked       — true if the DM has opened free rolling to everyone
    * All three default to "locked down" (null / false / false) so a fresh
    * room starts silent until the DM says otherwise.
    */
-  async setRoomTurn(roomId, activeCharacterId) {
-    await col("rooms").doc(roomId).update({ activeCharacterId: activeCharacterId || null });
+  async setRoomTurns(roomId, ids) {
+    const list = [...new Set(ids || [])];
+    await col("rooms").doc(roomId).update({
+      activeCharacterIds: list,
+      activeCharacterId: list[0] || null, // legacy single-turn field kept in sync
+    });
     return DB.getRoom(roomId);
   },
 
@@ -2164,7 +2168,7 @@ const Sync = (() => {
  *   "dice:result"       { request }                        a roll was completed
  *   "note:public"       { note }                           DM pushed a visible note/whisper
  *   "skill:new"         { skill }                          DM added a custom skill/threshold
- *   "turn:update"       { activeCharacterId }               DM changed whose turn it is (or cleared it)
+ *   "turn:update"       { activeCharacterIds }              DM changed whose turn it is (any number of players, or none)
  *   "chat:lock"         { chatUnlocked }                     DM opened/closed chat for everyone
  *   "roll:lock"         { rollUnlocked }                     DM opened/closed free rolling for everyone
  */
@@ -2446,8 +2450,14 @@ async function enterRoom() {
  * Turn / speaking-rights helpers
  * ================================================================== */
 
+/** Everyone currently on turn (supports rooms saved with the old single-turn field). */
+function activeTurnIds(r = room) {
+  if (Array.isArray(r.activeCharacterIds)) return r.activeCharacterIds;
+  return r.activeCharacterId ? [r.activeCharacterId] : [];
+}
+
 function isMyTurn() {
-  return !!room.activeCharacterId && room.activeCharacterId === myCharacter.id;
+  return activeTurnIds().includes(myCharacter.id);
 }
 
 function canSpeak() {
@@ -3268,7 +3278,7 @@ async function renderRoster() {
   if (!dropdown) return;
   const chars = await DB.getCharactersByRoom(room.id);
   const rows = chars.filter((c) => c.built).map((c) => {
-    const onTurn = room.activeCharacterId === c.id;
+    const onTurn = activeTurnIds().includes(c.id);
     return `
       <button class="roster-row ${onTurn ? "on-turn" : ""}" data-cid="${c.id}" ${isDM ? "" : "disabled"}>
         <span class="roster-dot ${onTurn ? "lit" : ""}"></span>
@@ -3281,6 +3291,9 @@ async function renderRoster() {
     ${rows || `<p class="empty-state">No one has taken a seat yet.</p>`}
     ${isDM ? `
       <div class="roster-head roster-controls-head">Table controls</div>
+      <div class="mini-note" style="padding:0 2px 6px;">Click names to toggle turns — as many players as you like.</div>
+      <button class="btn btn-ghost btn-block" id="turnsAllBtn" type="button" style="margin-bottom:6px;">Everyone's turn</button>
+      <button class="btn btn-ghost btn-block" id="turnsClearBtn" type="button" style="margin-bottom:8px;">Clear all turns</button>
       <label class="roster-toggle-row">
         <input type="checkbox" id="chatUnlockToggle" ${room.chatUnlocked ? "checked" : ""} />
         Open chat to everyone
@@ -3289,16 +3302,22 @@ async function renderRoster() {
   `;
 
   if (isDM) {
+    const applyTurns = async (ids) => {
+      room = await DB.setRoomTurns(room.id, ids);
+      Sync.emit("turn:update", { activeCharacterIds: ids });
+      renderRoster();
+      refreshComposerLock();
+    };
     dropdown.querySelectorAll(".roster-row[data-cid]").forEach((row) => {
-      row.addEventListener("click", async () => {
+      row.addEventListener("click", () => {
         const cid = row.dataset.cid;
-        const next = room.activeCharacterId === cid ? null : cid;
-        room = await DB.setRoomTurn(room.id, next);
-        Sync.emit("turn:update", { activeCharacterId: next });
-        renderRoster();
-        refreshComposerLock();
+        const current = activeTurnIds();
+        applyTurns(current.includes(cid) ? current.filter((id) => id !== cid) : [...current, cid]);
       });
     });
+    document.getElementById("turnsAllBtn").addEventListener("click", () =>
+      applyTurns(chars.filter((c) => c.built && !c.isDM).map((c) => c.id)));
+    document.getElementById("turnsClearBtn").addEventListener("click", () => applyTurns([]));
     document.getElementById("chatUnlockToggle").addEventListener("change", async (e) => {
       room = await DB.setChatUnlocked(room.id, e.target.checked);
       Sync.emit("chat:lock", { chatUnlocked: e.target.checked });
@@ -3435,8 +3454,9 @@ function wireSyncListeners() {
     if (isDM && typeof DMTools !== "undefined" && DMTools.refreshSkillLib) DMTools.refreshSkillLib();
   });
 
-  Sync.on("turn:update", ({ activeCharacterId }) => {
-    room.activeCharacterId = activeCharacterId;
+  Sync.on("turn:update", ({ activeCharacterIds, activeCharacterId }) => {
+    room.activeCharacterIds = activeCharacterIds || (activeCharacterId ? [activeCharacterId] : []);
+    room.activeCharacterId = room.activeCharacterIds[0] || null;
     refreshComposerLock();
     renderRoster();
     const prefix = isDM ? "left" : "player";
@@ -3527,7 +3547,7 @@ const DMTools = (() => {
     },
     {
       title: "The \"Table\" button — turns and chat",
-      body: `Up in the top bar, the "Table" button shows every player. Click a name to make it their turn — that unlocks the chat box for them, shown with a green dot. Click the same name again to clear the turn. The checkbox below the roster ("Open chat to everyone") bypasses turns for a free-for-all moment.`,
+      body: `Up in the top bar, the "Table" button shows every player. Click a name to toggle their turn — that unlocks the chat box for them, shown with a green dot. You can put several players on turn at once; click a name again to take them off, or use "Everyone's turn" and "Clear all turns". The checkbox below the roster ("Open chat to everyone") bypasses turns for a free-for-all moment.`,
     },
   ];
 
