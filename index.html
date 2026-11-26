@@ -520,8 +520,11 @@ label {
   border-top: 1px solid var(--ink-line);
   background: var(--ink-panel);
 }
-.composer input { flex: 1; }
-.composer input:disabled {
+.composer { align-items: flex-end; }
+.composer input, .composer textarea { flex: 1; }
+.composer textarea { resize: none; max-height: 160px; line-height: 1.4; font-family: inherit; overflow-y: auto; }
+.story-line .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.composer input:disabled, .composer textarea:disabled {
   background: var(--ink-panel);
   color: var(--text-lo);
   border-color: var(--blood-dim);
@@ -1053,7 +1056,7 @@ body.resizing { user-select: none; cursor: col-resize; }
       <form class="composer" id="composerForm">
         <button class="btn" type="button" id="attachBtn" title="Attach an image (or paste / drop one)">📎</button>
         <input type="file" id="imageInput" accept="image/*" class="hidden" />
-        <input id="composerInput" placeholder="Say something to the table…" autocomplete="off" />
+        <textarea id="composerInput" rows="1" placeholder="Say something to the table…" autocomplete="off"></textarea>
         <button class="btn btn-primary" type="submit">Send</button>
       </form>
     </section>
@@ -3196,6 +3199,19 @@ function wireComposer() {
     if (b) setChannel(b.dataset.channel);
   });
 
+  const autosize = () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 160) + "px";
+  };
+  input.addEventListener("keydown", (e) => {
+    // Enter sends; Shift+Enter inserts a new line (IME composition is left alone).
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      document.getElementById("composerForm").requestSubmit();
+    }
+  });
+  input.addEventListener("input", autosize);
+
   input.addEventListener("input", () => {
     if (!canSpeakIn(activeChannel) || !input.value.trim()) return;
     const now = Date.now();
@@ -3215,6 +3231,7 @@ function wireComposer() {
     pendingImage = null;
     renderImagePreview();
     input.value = "";
+    input.style.height = "auto";
     const msg = await DB.addMessage({
       roomId: room.id,
       authorId: myCharacter.id,
