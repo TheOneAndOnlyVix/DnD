@@ -835,6 +835,8 @@ body.resizing { user-select: none; cursor: col-resize; }
 .table-feed .chat-image { border-color: var(--ink-line); }
 .table-hint { text-align: center; font-size: 12px; color: var(--text-lo); font-style: italic; margin-bottom: 14px; }
 
+.load-older { display: block; margin: 0 auto 16px; }
+
 .hidden { display: none !important; }
 
 @media (max-width: 980px) {
@@ -1877,6 +1879,32 @@ const DB = {
     return { id: ref.id, ...data };
   },
 
+  /**
+   * Newest-first page of messages (returned oldest-first). Uses an indexed
+   * query when the composite index (roomId + createdAt) exists; otherwise
+   * falls back to one full fetch that is paged locally.
+   */
+  _msgCache: null,
+  async getMessagePage(roomId, limit, beforeTs) {
+    if (!DB._msgCache || DB._msgCache.roomId !== roomId) DB._msgCache = { roomId, indexed: true, all: null };
+    const cache = DB._msgCache;
+    if (cache.indexed) {
+      try {
+        let q = col("messages").where("roomId", "==", roomId).orderBy("createdAt", "desc");
+        if (beforeTs) q = q.startAfter(beforeTs);
+        const snap = await q.limit(limit + 1).get();
+        const rows = snap.docs.map(docToObj);
+        return { rows: rows.slice(0, limit).reverse(), hasMore: rows.length > limit };
+      } catch (err) {
+        console.warn("Quevela: messages query needs a Firestore composite index (messages: roomId asc, createdAt desc). Falling back to a full load.", err);
+        cache.indexed = false;
+      }
+    }
+    if (!cache.all) cache.all = await DB.getMessagesByRoom(roomId);
+    const pool = beforeTs ? cache.all.filter((m) => m.createdAt < beforeTs) : cache.all;
+    return { rows: pool.slice(-limit), hasMore: pool.length > limit };
+  },
+
   async getMessagesByRoom(roomId) {
     const snap = await col("messages").where("roomId", "==", roomId).get();
     return sortByCreatedAt(snap.docs.map(docToObj));
@@ -2906,29 +2934,35 @@ async function renderDicePanel(container, character) {
 const channelOf = (m) => m.channel || "story";
 const feedEl = (channel) => document.getElementById(channel === "table" ? "tableFeed" : "storyFeed");
 
-async function renderStoryFeed() {
-  const story = feedEl("story");
-  const table = feedEl("table");
-  story.innerHTML = "";
-  table.innerHTML = `<div class="table-hint">Player Chat — talk freely, out of character. Not part of the story.</div>`;
-  const messages = await DB.getMessagesByRoom(room.id);
-  for (const message of messages) {
-    await appendStoryLine(message);
-  }
-  story.scrollTop = story.scrollHeight;
-  table.scrollTop = table.scrollHeight;
+const MESSAGE_PAGE = 80;
+const authorCache = new Map(); // characterId -> isDM (one lookup instead of one per message)
+let oldestLoaded = null;
+let hasOlder = false;
+
+async function warmAuthorCache() {
+  authorCache.clear();
+  const chars = await DB.getCharactersByRoom(room.id);
+  chars.forEach((c) => authorCache.set(c.id, !!c.isDM));
 }
 
-async function appendStoryLine(message) {
+async function isDmAuthor(authorId) {
+  if (!authorId || authorId === "system") return false;
+  if (!authorCache.has(authorId)) {
+    const c = await DB.getCharacter(authorId);
+    authorCache.set(authorId, !!(c && c.isDM));
+  }
+  return authorCache.get(authorId);
+}
+
+/** Builds a message line synchronously from the author cache. */
+function buildMessageLine(message, isDMAuthor) {
   const channel = channelOf(message);
-  const feed = feedEl(channel);
   const line = document.createElement("div");
   line.className = `story-line ${message.type}`;
   if (message.type === "system") {
     line.innerHTML = `<span class="body">${escapeHtml(message.text)}</span>`;
   } else {
-    const authorChar = message.authorId !== "system" ? await DB.getCharacter(message.authorId) : null;
-    const nameClass = authorChar && authorChar.isDM ? "who dm-name" : "who";
+    const nameClass = isDMAuthor ? "who dm-name" : "who";
     const time = channel === "table" && message.createdAt
       ? `<span class="time">${new Date(message.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>` : "";
     line.innerHTML = `<span class="${nameClass}">${escapeHtml(message.authorName)}</span><span class="body">${escapeHtml(message.text)}</span>${time}`;
@@ -2936,12 +2970,87 @@ async function appendStoryLine(message) {
   if (message.meta && message.meta.image) {
     const img = document.createElement("img");
     img.className = "chat-image";
+    img.loading = "lazy";
+    img.decoding = "async";
     img.src = message.meta.image;
     img.alt = "Shared image";
     img.addEventListener("click", () => openLightbox(message.meta.image));
-    img.addEventListener("load", () => { feed.scrollTop = feed.scrollHeight; });
     line.appendChild(img);
   }
+  return line;
+}
+
+function updateLoadOlderButtons() {
+  ["story", "table"].forEach((ch) => {
+    const feed = feedEl(ch);
+    let btn = feed.querySelector(".load-older");
+    if (hasOlder && !btn) {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-ghost load-older";
+      btn.textContent = "Load older messages";
+      btn.addEventListener("click", loadOlderMessages);
+      const hint = feed.querySelector(".table-hint");
+      if (hint) hint.after(btn); else feed.prepend(btn);
+    } else if (!hasOlder && btn) {
+      btn.remove();
+    }
+  });
+}
+
+function distributeMessages(messages, prepend) {
+  const frags = { story: document.createDocumentFragment(), table: document.createDocumentFragment() };
+  for (const m of messages) frags[channelOf(m)].appendChild(buildMessageLine(m, authorCache.get(m.authorId)));
+  ["story", "table"].forEach((ch) => {
+    const feed = feedEl(ch);
+    if (!prepend) { feed.appendChild(frags[ch]); return; }
+    const anchor = feed.querySelector(".load-older") || feed.querySelector(".table-hint");
+    const before = feed.scrollHeight - feed.scrollTop;
+    const ref = anchor ? anchor.nextSibling : feed.firstChild;
+    feed.insertBefore(frags[ch], ref);
+    feed.scrollTop = feed.scrollHeight - before; // keep the reader's place
+  });
+}
+
+async function renderStoryFeed() {
+  const story = feedEl("story");
+  const table = feedEl("table");
+  story.innerHTML = `<p class="empty-state">Loading…</p>`;
+  table.innerHTML = "";
+  DB._msgCache = null;
+  const [page] = await Promise.all([DB.getMessagePage(room.id, MESSAGE_PAGE, null), warmAuthorCache()]);
+  story.innerHTML = "";
+  table.innerHTML = `<div class="table-hint">Player Chat — talk freely, out of character. Not part of the story.</div>`;
+  distributeMessages(page.rows, false);
+  oldestLoaded = page.rows.length ? page.rows[0].createdAt : null;
+  hasOlder = page.hasMore;
+  updateLoadOlderButtons();
+  story.scrollTop = story.scrollHeight;
+  table.scrollTop = table.scrollHeight;
+}
+
+async function loadOlderMessages() {
+  if (!oldestLoaded) return;
+  const buttons = document.querySelectorAll(".load-older");
+  buttons.forEach((b) => { b.disabled = true; b.textContent = "Loading…"; });
+  const page = await DB.getMessagePage(room.id, MESSAGE_PAGE, oldestLoaded);
+  if (page.rows.length) {
+    await Promise.all([...new Set(page.rows.map((m) => m.authorId))].map(isDmAuthor));
+    distributeMessages(page.rows, true);
+    oldestLoaded = page.rows[0].createdAt;
+  }
+  hasOlder = page.hasMore;
+  buttons.forEach((b) => { b.disabled = false; b.textContent = "Load older messages"; });
+  updateLoadOlderButtons();
+}
+
+/** A single new live message. */
+async function appendStoryLine(message) {
+  const feed = feedEl(channelOf(message));
+  const isDMAuthor = await isDmAuthor(message.authorId);
+  const line = buildMessageLine(message, isDMAuthor);
+  const img = line.querySelector("img");
+  if (img) img.addEventListener("load", () => { feed.scrollTop = feed.scrollHeight; });
   feed.appendChild(line);
   feed.scrollTop = feed.scrollHeight;
 }
