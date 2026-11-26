@@ -1430,7 +1430,7 @@ GameData.magicCore = {
 
 GameData.magic.intellectual = {
   label: "Intellectual",
-  summary: "Mind-bending arts that work on perception and will rather than on the elements.",
+  summary: "Mind-bending arts that work on perception and will rather than on the elements. Extremely powerful, so they demand very high Intelligence and Wisdom.",
   tiers: { general: GameData.intellectualSkills },
 };
 GameData.magic.physical = {
@@ -1638,12 +1638,32 @@ function computeStartingSpells(race, subrace, stats) {
   add("Dexterity Up", "physical", (stats.Dexterity || 0) >= 12);
   add("Strength Up", "physical", (stats.Strength || 0) >= 12);
   add("Charisma Up", "physical", (stats.Charisma || 0) >= 15);
-  add("Intuition", "intellectual", (stats.Wisdom || 0) >= 12);
-  add("Manipulate", "intellectual", (stats.Charisma || 0) >= 13 && (stats.Intelligence || 0) >= 11);
-  add("Hallucinate", "intellectual", (stats.Intelligence || 0) >= 15);
-  add("Manifest", "intellectual", (stats.Intelligence || 0) >= 17 && (stats.Wisdom || 0) >= 15);
-  add("Degrade", "intellectual", (stats.Intelligence || 0) >= 18);
+  add("Intuition", "intellectual", (stats.Wisdom || 0) >= 14 && (stats.Intelligence || 0) >= 12);
+  add("Manipulate", "intellectual", (stats.Charisma || 0) >= 15 && (stats.Intelligence || 0) >= 14);
+  add("Hallucinate", "intellectual", (stats.Intelligence || 0) >= 17 && (stats.Wisdom || 0) >= 14);
+  add("Manifest", "intellectual", (stats.Intelligence || 0) >= 19 && (stats.Wisdom || 0) >= 17);
+  add("Degrade", "intellectual", (stats.Intelligence || 0) >= 20 && (stats.Wisdom || 0) >= 16);
   return out;
+}
+
+/**
+ * Auto-unlock: adds any spell the character now qualifies for (from race,
+ * Intelligence/Wisdom and other stats). Never removes spells, and skips ones
+ * the DM has taken away (character.dismissedSpells). Returns the names added.
+ */
+function applyAutoSpells(character) {
+  if (!character || !character.race || !character.stats) return [];
+  character.knownSpells = character.knownSpells || [];
+  const dismissed = new Set((character.dismissedSpells || []).map((d) => `${d.name}|${d.element}`));
+  const added = [];
+  computeStartingSpells(character.race, character.subrace, character.stats).forEach((sp) => {
+    const key = `${sp.name}|${sp.element}`;
+    if (dismissed.has(key)) return;
+    if (character.knownSpells.some((k) => `${k.name}|${k.element}` === key)) return;
+    character.knownSpells.push(sp);
+    added.push(sp.name);
+  });
+  return added;
 }
 
 /** Every skill a character currently has, grouped for display. */
@@ -3668,8 +3688,10 @@ const DMTools = (() => {
   }
 
   async function pushCharacterUpdate(character) {
+    const unlocked = applyAutoSpells(character); // stats may have risen — unlock any newly earned spells
     const saved = await DB.upsertCharacter(character);
     Sync.emit("character:update", { character: saved });
+    if (unlocked.length) announce(`${character.name} unlocked: ${unlocked.join(", ")}.`);
     return saved;
   }
 
@@ -4035,6 +4057,7 @@ const DMTools = (() => {
       target.knownSpells = target.knownSpells || [];
       if (target.knownSpells.some((s) => s.name === name)) return;
       target.knownSpells.push({ name, element, tier });
+      target.dismissedSpells = (target.dismissedSpells || []).filter((d) => !(d.name === name && d.element === element));
       await pushCharacterUpdate(target);
       announce(`${target.name} learned ${name}.`);
       renderClassesBody();
@@ -4063,6 +4086,7 @@ const DMTools = (() => {
     knownBox.querySelectorAll("button[data-idx]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const removed = target.knownSpells.splice(Number(btn.dataset.idx), 1)[0];
+        target.dismissedSpells = (target.dismissedSpells || []).concat({ name: removed.name, element: removed.element });
         await pushCharacterUpdate(target);
         announce(`${target.name} forgot ${removed.name}.`);
         renderClassesBody();
