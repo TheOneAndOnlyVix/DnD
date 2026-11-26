@@ -2681,6 +2681,17 @@ function showCreationView() {
  * ================================================================== */
 
 function showAppView() {
+  if (myCharacter.built && !myCharacter.skipped) {
+    // Existing characters pick up any spells they already qualify for.
+    const unlocked = applyAutoSpells(myCharacter);
+    if (unlocked.length) {
+      DB.upsertCharacter(myCharacter).then(async (saved) => {
+        Sync.emit("character:update", { character: saved });
+        const message = await DB.addMessage({ roomId: room.id, authorId: "system", authorName: "System", type: "system", text: `${saved.name} unlocked: ${unlocked.join(", ")}.` });
+        Sync.emit("chat:new", { message });
+      });
+    }
+  }
   document.getElementById("creationView").classList.add("hidden");
   document.getElementById("appView").classList.remove("hidden");
 
@@ -3719,6 +3730,11 @@ const DMTools = (() => {
     const target = await currentTarget("overviewTarget");
     if (!target) return (body.innerHTML = `<p class="empty-state">No characters yet.</p>`);
 
+    // Unlock any spells this character already qualifies for (a no-op once they have them).
+    if (target.built && applyAutoSpells(structuredClone(target)).length) {
+      await pushCharacterUpdate(target);
+    }
+
     const hpPct = Math.max(0, Math.min(100, (target.hp.current / target.hp.max) * 100));
     const customSkills = await DB.getCustomSkills(roomRef.id);
     const skillGroups = computeSkills(target, customSkills);
@@ -3871,7 +3887,22 @@ const DMTools = (() => {
     const body = document.getElementById("statsEditorBody");
     const target = await currentTarget("statsTarget");
     if (!target) return (body.innerHTML = "");
+    const subraces = Object.keys(GameData.charRaces["Demi-Human"].subraces);
     body.innerHTML = `
+      <div class="dm-field-row" style="margin-bottom:12px;">
+        <div>
+          <label>Race</label>
+          <select id="dmRace">
+            ${target.race ? "" : `<option value="">— not set —</option>`}
+            ${Object.keys(GameData.charRaces).map((r) => `<option value="${r}" ${target.race === r ? "selected" : ""}>${r}</option>`).join("")}
+          </select>
+        </div>
+        <div id="dmSubraceWrap" class="${target.race === "Demi-Human" ? "" : "hidden"}">
+          <label>Demi-Human type</label>
+          <select id="dmSubrace">${subraces.map((r) => `<option value="${r}" ${target.subrace === r ? "selected" : ""}>${r}</option>`).join("")}</select>
+        </div>
+      </div>
+      ${target.race ? "" : `<p class="mini-note">This character has no race yet, so it can't unlock racial skills or auto-unlock spells. Pick one and save.</p>`}
       ${GameData.attributes.map((attr) => `
         <div class="stat-editor-row">
           <span class="stat-name">${attr}</span>
@@ -3903,7 +3934,15 @@ const DMTools = (() => {
         document.getElementById(`dmval-${attr}`).textContent = next;
       });
     });
+    document.getElementById("dmRace").addEventListener("change", (e) => {
+      document.getElementById("dmSubraceWrap").classList.toggle("hidden", e.target.value !== "Demi-Human");
+    });
     document.getElementById("dmStatsSaveBtn").addEventListener("click", async () => {
+      const raceVal = document.getElementById("dmRace").value;
+      if (raceVal) {
+        target.race = raceVal;
+        target.subrace = raceVal === "Demi-Human" ? document.getElementById("dmSubrace").value : null;
+      }
       target.hp.max = Math.max(1, Number(document.getElementById("dmHpMax").value) || target.hp.max);
       target.hp.current = Math.min(target.hp.max, Math.max(0, Number(document.getElementById("dmHpCurrent").value) || 0));
       await pushCharacterUpdate(target);
